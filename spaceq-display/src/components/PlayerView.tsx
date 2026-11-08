@@ -48,7 +48,8 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [heartbeatCounter, setHeartbeatCounter] = useState(30);
   const [orientation, setOrientation] = useState<'LANDSCAPE' | 'PORTRAIT'>(device.orientation || 'LANDSCAPE');
   const [primaryStatus, setPrimaryStatus] = useState({ index: 0, total: 1, title: 'System Idle', durationSeconds: 10 });
-  const [scrollingConfig, setScrollingConfig] = useState<any>(null);\n  const [frameConfig, setFrameConfig] = useState<any>(null);
+  const [scrollingConfig, setScrollingConfig] = useState<any>(null);
+  const [frameConfig, setFrameConfig] = useState<any>(null);
 
   // Shared ticker subscription: this component powers both the dashboard
   // live preview and the physical kiosk display.
