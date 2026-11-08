@@ -50,6 +50,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [primaryStatus, setPrimaryStatus] = useState({ index: 0, total: 1, title: 'System Idle', durationSeconds: 10 });
   const [scrollingConfig, setScrollingConfig] = useState<any>(null);
   const [frameConfig, setFrameConfig] = useState<any>(null);
+  const [cubeConfig, setCubeConfig] = useState<any>(null);
 
   // Shared ticker subscription: this component powers both the dashboard
   // live preview and the physical kiosk display.
@@ -57,6 +58,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     // Clear the previous device's ticker immediately while the new device's
     // global and selected-device settings are being loaded.
     setScrollingConfig(null);
+    setCubeConfig(null);
     if (!device.businessId) return;
 
     const globalRef = doc(db, 'scrollingMessages', device.businessId);
@@ -102,6 +104,12 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       const selectedFrame = selectedForThisDevice ? deviceConfig?.frame : null;
       const activeFrame = globalFrame?.enabled ? globalFrame : selectedFrame;
       setFrameConfig(activeFrame?.enabled ? activeFrame : null);
+
+      // Cube follows the same Global-first, selected-device-fallback rule.
+      const globalCube = globalConfig?.cube;
+      const selectedCube = selectedForThisDevice ? deviceConfig?.cube : null;
+      const activeCube = globalCube?.enabled ? globalCube : selectedCube;
+      setCubeConfig(activeCube?.enabled ? activeCube : null);
     };
 
     const stopGlobal = onSnapshot(
@@ -434,6 +442,39 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           @keyframes sq-pulse{0%,100%{opacity:.5;box-shadow:inset 0 0 8px var(--sq-frame-color),0 0 8px var(--sq-frame-color)}50%{opacity:1;box-shadow:inset 0 0 28px var(--sq-frame-color),0 0 28px var(--sq-frame-color)}}
           @keyframes sq-corner{from{filter:brightness(.65)}to{filter:brightness(1.8)}}
         `}</style>
+        {cubeConfig?.enabled && (() => {
+          const size = Math.max(40, Math.min(500, Number(cubeConfig.size) || 140));
+          const faces = cubeConfig.faces || {};
+          const names = ['front','right','back','left','top','bottom'];
+          const half = size / 2;
+          const faceTransforms: Record<string,string> = {
+            front: `translateZ(${half}px)`,
+            right: `rotateY(90deg) translateZ(${half}px)`,
+            back: `rotateY(180deg) translateZ(${half}px)`,
+            left: `rotateY(-90deg) translateZ(${half}px)`,
+            top: `rotateX(90deg) translateZ(${half}px)`,
+            bottom: `rotateX(-90deg) translateZ(${half}px)`,
+          };
+          const mode = cubeConfig.mode || 'CONTINUOUS';
+          const axis = cubeConfig.axis || 'Y';
+          const direction = cubeConfig.direction === 'ANTICLOCKWISE' ? 'reverse' : 'normal';
+          const speed = Math.max(2, 20 - (Number(cubeConfig.speed) || 12));
+          const duration = mode === 'FACE_BY_FACE' ? Math.max(1, Number(cubeConfig.pauseSeconds) || 2) * 6 : speed;
+          const animationName = mode === 'CONTINUOUS' ? (axis === 'X' ? 'sq-cube-spin-x' : axis === 'BOTH' ? 'sq-cube-spin-both' : 'sq-cube-spin-y') : mode === 'FACE_BY_FACE' ? 'sq-cube-steps' : undefined;
+          return (
+            <div className="pointer-events-none absolute" style={{ zIndex: 2147483647, left: `${cubeConfig.x ?? 88}%`, top: `${cubeConfig.y ?? 16}%`, width: size, height: size, transform: 'translate(-50%,-50%)', perspective: 1000 }}>
+              <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transform: mode === 'MANUAL' ? `rotateX(${Number(cubeConfig.angleX) || 0}deg) rotateY(${Number(cubeConfig.angleY) || 0}deg)` : undefined, animation: animationName ? `${animationName} ${duration}s linear infinite` : undefined, animationDirection: direction }}>
+                {names.map(name => {
+                  const face = faces[name] || {};
+                  return <div key={name} style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxSizing: 'border-box', backfaceVisibility: 'hidden', transform: faceTransforms[name], background: face.background || '#B5121B', color: face.color || '#FFFFFF', border: '1px solid rgba(255,255,255,.55)', fontSize: Math.max(10, size * .12), fontWeight: 800, textAlign: 'center', padding: 6 }}>
+                    {face.type === 'IMAGE' && face.imageUrl ? <img src={face.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ overflowWrap: 'anywhere' }}>{face.text || 'YOUR AD HERE'}</span>}
+                  </div>;
+                })}
+              </div>
+              <style>{`@keyframes sq-cube-spin-y{from{transform:rotateX(-18deg) rotateY(0)}to{transform:rotateX(-18deg) rotateY(360deg)}}@keyframes sq-cube-spin-x{from{transform:rotateX(0) rotateY(-18deg)}to{transform:rotateX(360deg) rotateY(-18deg)}}@keyframes sq-cube-spin-both{from{transform:rotateX(0) rotateY(0)}to{transform:rotateX(360deg) rotateY(360deg)}}@keyframes sq-cube-steps{0%,12%{transform:rotateX(-18deg) rotateY(0)}16.66%,29%{transform:rotateX(-18deg) rotateY(-60deg)}33.33%,45%{transform:rotateX(-18deg) rotateY(-120deg)}50%,62%{transform:rotateX(-18deg) rotateY(-180deg)}66.66%,79%{transform:rotateX(-18deg) rotateY(-240deg)}83.33%,95%{transform:rotateX(-18deg) rotateY(-300deg)}100%{transform:rotateX(-18deg) rotateY(-360deg)}}`}</style>
+            </div>
+          );
+        })()}
         {scrollingConfig?.enabled && scrollingConfig.message && (() => {
           const direction = scrollingConfig.direction || 'RIGHT_TO_LEFT';
           const vertical = direction === 'TOP_TO_BOTTOM' || direction === 'BOTTOM_TO_TOP';
