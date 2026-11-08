@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { doc, onSnapshot, setDoc, updateDoc, increment, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Device, Playlist, ContentItem } from '../types';
 import { PlayerView } from './PlayerView';
@@ -404,13 +404,26 @@ export const KioskDisplay: React.FC = () => {
 
   useEffect(() => {
     if (!device?.businessId) { setScrollingConfig(null); return; }
-    const q = query(collection(db, 'scrollingMessages'), where('businessId', '==', device.businessId));
-    return onSnapshot(q, snapshot => {
-      const configs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
-      const selected = configs.find(c => c.scope === 'DEVICES' && c.enabled && (c.deviceIds || []).includes(device.id));
-      const global = configs.find(c => c.scope === 'GLOBAL' && c.enabled);
-      setScrollingConfig(selected || global || null);
-    }, error => console.warn('Scrolling message listener:', error));
+    // Kiosks are intentionally unauthenticated. Read the two predictable
+    // document IDs directly rather than listing the tenant's collection.
+    const globalRef = doc(db, 'scrollingMessages', device.businessId);
+    const deviceRef = doc(db, 'scrollingMessages', `${device.businessId}_devices`);
+    let globalConfig: any = null;
+    let deviceConfig: any = null;
+    const publish = () => {
+      const selected = deviceConfig?.enabled
+        && (deviceConfig.deviceIds || []).includes(device.id) ? deviceConfig : null;
+      setScrollingConfig(selected || (globalConfig?.enabled ? globalConfig : null));
+    };
+    const stopGlobal = onSnapshot(globalRef, snap => {
+      globalConfig = snap.exists() ? snap.data() : null;
+      publish();
+    }, error => console.warn('Global scrolling message listener:', error));
+    const stopDevice = onSnapshot(deviceRef, snap => {
+      deviceConfig = snap.exists() ? snap.data() : null;
+      publish();
+    }, error => console.warn('Device scrolling message listener:', error));
+    return () => { stopGlobal(); stopDevice(); };
   }, [device?.businessId, device?.id]);
 
   // --- Render states ---
