@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { doc, onSnapshot, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, increment, collection, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Device, Playlist, ContentItem } from '../types';
 import { PlayerView } from './PlayerView';
@@ -35,6 +35,7 @@ function generateCode(): string {
 export const KioskDisplay: React.FC = () => {
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [device, setDevice] = useState<Device | null | undefined>(undefined); // undefined = loading
+  const [scrollingConfig, setScrollingConfig] = useState<any>(null);
   const [assignedPlaylists, setAssignedPlaylists] = useState<Playlist[]>([]);
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [now, setNow] = useState(() => new Date());
@@ -401,6 +402,17 @@ export const KioskDisplay: React.FC = () => {
       .catch(err => console.warn('QR generation failed:', err));
   }, [device?.pairingCode, device?.businessId]);
 
+  useEffect(() => {
+    if (!device?.businessId) { setScrollingConfig(null); return; }
+    const q = query(collection(db, 'scrollingMessages'), where('businessId', '==', device.businessId));
+    return onSnapshot(q, snapshot => {
+      const configs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const selected = configs.find(c => c.scope === 'DEVICES' && c.enabled && (c.deviceIds || []).includes(device.id));
+      const global = configs.find(c => c.scope === 'GLOBAL' && c.enabled);
+      setScrollingConfig(selected || global || null);
+    }, error => console.warn('Scrolling message listener:', error));
+  }, [device?.businessId, device?.id]);
+
   // --- Render states ---
 
   if (!deviceId || device === undefined) {
@@ -425,6 +437,13 @@ export const KioskDisplay: React.FC = () => {
           kioskMode
           onPlaybackStart={handlePlaybackStart}
         />
+        {scrollingConfig?.enabled && scrollingConfig.message && (
+          <div className={`pointer-events-none absolute left-0 right-0 z-[60] overflow-hidden whitespace-nowrap py-2 ${scrollingConfig.position === 'TOP' ? 'top-0' : scrollingConfig.position === 'MIDDLE' ? 'top-1/2 -translate-y-1/2' : 'bottom-0'}`}
+            style={{ backgroundColor: scrollingConfig.backgroundColor || 'transparent', color: scrollingConfig.color || '#fff', fontFamily: scrollingConfig.fontFamily || 'Arial', fontSize: `${scrollingConfig.fontSize || 32}px` }}>
+            <div style={{ display: 'inline-block', paddingLeft: '100%', animation: `spaceq-kiosk-marquee ${Math.max(8, 120 - (scrollingConfig.speed || 24))}s linear infinite` }}>{scrollingConfig.message}</div>
+            <style>{'@keyframes spaceq-kiosk-marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}'}</style>
+          </div>
+        )}
         {/* Remote sync is intentionally non-visual: never interrupt playback. */}
         <FullscreenTapButton />
       </div>
