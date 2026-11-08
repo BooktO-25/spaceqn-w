@@ -445,13 +445,11 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
               className="pointer-events-none absolute overflow-hidden whitespace-nowrap"
               style={{
                 zIndex: 2147483647,
-                left: '50%',
-                top: rotation === 90 || rotation === 270 ? '50%' : positionTop,
+                left: `${scrollingConfig.xPercent ?? 50}%`,
+                top: `${scrollingConfig.yPercent ?? (scrollingConfig.position === 'TOP' ? 10 : scrollingConfig.position === 'MIDDLE' ? 50 : 90)}%`,
                 width: rotation === 90 || rotation === 270 ? `${stageSize.height}px` : '100%',
                 height: rotation === 90 || rotation === 270 ? `${stageSize.width}px` : 'auto',
-                transform: rotation === 90 || rotation === 270
-                  ? `translate(-50%, -50%) rotate(${rotation}deg)`
-                  : `translate(-50%, ${positionTransform})`,
+                transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
                 transformOrigin: 'center',
                 boxSizing: 'border-box',
                 backgroundColor: scrollingConfig.backgroundColor || 'transparent',
