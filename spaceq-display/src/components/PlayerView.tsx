@@ -448,7 +448,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                 left: `${scrollingConfig.xPercent ?? 50}%`,
                 top: `${scrollingConfig.yPercent ?? (scrollingConfig.position === 'TOP' ? 10 : scrollingConfig.position === 'MIDDLE' ? 50 : 90)}%`,
                 width: rotation === 90 || rotation === 270 ? `${stageSize.height}px` : '100%',
-                height: rotation === 90 || rotation === 270 ? `${stageSize.width}px` : 'auto',
+                height: `${Math.ceil((scrollingConfig.fontSize || 32) * 1.1) + Math.max(2, Math.round((scrollingConfig.fontSize || 32) * 0.12)) * 2}px`,
                 transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
                 transformOrigin: 'center',
                 boxSizing: 'border-box',
