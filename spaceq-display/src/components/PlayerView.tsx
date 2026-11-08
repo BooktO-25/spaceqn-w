@@ -409,60 +409,31 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
         )}
         </div>
         {frameConfig?.enabled && (
-          frameConfig.mode === 'UPLOAD' && frameConfig.imageUrl ? (
-            <>
-              <img
-                src={frameConfig.imageUrl}
-                alt=""
-                className="pointer-events-none absolute inset-0 w-full h-full object-fill"
-                style={{ zIndex: 2147483646 }}
-              />
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  zIndex: 2147483647,
-                  border: '10px solid transparent',
-                  borderImage: frameConfig.colorMode === 'RGB'
-                    ? 'linear-gradient(90deg,#ff1744,#ffea00,#00e676,#00b0ff,#d500f9,#ff1744) 1'
-                    : frameConfig.colorMode === 'PATTERN'
-                      ? (frameConfig.pattern === 'DOTS'
-                        ? 'radial-gradient(circle,#f59e0b 3px,transparent 4px) 1'
-                        : 'repeating-linear-gradient(45deg,#f59e0b 0 8px,#7c3aed 8px 16px,#06b6d4 16px 24px) 1')
-                      : `linear-gradient(${frameConfig.color || '#00B3A4'},${frameConfig.color || '#00B3A4'}) 1`,
-                  filter: frameConfig.colorMode === 'RGB' ? 'hue-rotate(0deg)' : undefined,
-                  animation: frameConfig.colorMode === 'RGB' ? 'spaceq-frame-rgb 6s linear infinite' : undefined,
-                }}
-              />
-              <style>{'@keyframes spaceq-frame-rgb{to{filter:hue-rotate(360deg)}}'}</style>
-            </>
-          ) : (
+          <>
+            {frameConfig.mode === 'UPLOAD' && frameConfig.imageUrl && (
+              <img src={frameConfig.imageUrl} alt="" className="pointer-events-none absolute inset-0 w-full h-full object-fill" style={{ zIndex: 2147483646 }} />
+            )}
             <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                zIndex: 2147483646,
-                border: frameConfig.colorMode === 'RGB'
-                  ? '12px solid transparent'
-                  : frameConfig.colorMode === 'PATTERN'
-                    ? '12px solid transparent'
-                    : `12px solid ${frameConfig.color || '#00B3A4'}`,
-                borderImage: frameConfig.colorMode === 'RGB'
-                  ? 'linear-gradient(90deg,#ff1744,#ffea00,#00e676,#00b0ff,#d500f9,#ff1744) 1'
-                  : frameConfig.colorMode === 'PATTERN'
-                    ? (frameConfig.pattern === 'DOTS'
-                      ? 'radial-gradient(circle,#f59e0b 3px,transparent 4px) 1'
-                      : frameConfig.pattern === 'CHECKER'
-                        ? 'repeating-conic-gradient(#7c3aed 0 25%,#06b6d4 0 50%) 1'
-                        : 'repeating-linear-gradient(45deg,#f59e0b 0 8px,#7c3aed 8px 16px,#06b6d4 16px 24px) 1')
-                    : undefined,
-                boxShadow: frameConfig.template === 'neon' ? 'inset 0 0 28px 6px currentColor' : undefined,
-                color: frameConfig.color || '#00B3A4',
-                outline: frameConfig.template === 'double' ? '4px double currentColor' : undefined,
-                outlineOffset: frameConfig.template === 'corner' ? '-24px' : undefined,
-                borderStyle: frameConfig.template === 'festive' ? 'dotted' : frameConfig.template === 'double' ? 'double' : 'solid',
-              }}
+              className={`sq-frame sq-frame--${frameConfig.template || 'aurora'} ${frameConfig.colorMode === 'RGB' ? 'sq-frame--rgb' : ''} ${frameConfig.colorMode === 'PATTERN' ? 'sq-frame--pattern' : ''}`}
+              style={{ zIndex: 2147483647, '--sq-frame-color': frameConfig.color || '#00B3A4' } as React.CSSProperties}
             />
-          )
+          </>
         )}
+        <style>{`
+          .sq-frame{position:absolute;inset:0;pointer-events:none;--sq-frame-color:#00B3A4}
+          .sq-frame:before{content:'';position:absolute;pointer-events:none}
+          .sq-frame--aurora:before{inset:0;border:10px solid transparent;border-image:linear-gradient(120deg,#00e5ff,#7c3aed,#ff2d95,#facc15,#00e5ff) 1;filter:drop-shadow(0 0 8px #00e5ff);animation:sq-hue 4s linear infinite}
+          .sq-frame--orbit:before{inset:0;border:8px dashed #00e5ff;box-shadow:inset 0 0 12px #00e5ff,0 0 12px #00e5ff;animation:sq-orbit 5s linear infinite}
+          .sq-frame--pulse:before{inset:5px;border:8px solid var(--sq-frame-color);box-shadow:inset 0 0 20px var(--sq-frame-color),0 0 20px var(--sq-frame-color);animation:sq-pulse 2s ease-in-out infinite}
+          .sq-frame--corner:before{inset:0;background:linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left top/48px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left top/5px 48px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right top/48px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right top/5px 48px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left bottom/48px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left bottom/5px 48px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right bottom/48px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right bottom/5px 48px no-repeat;animation:sq-corner 2s ease-in-out infinite alternate}
+          .sq-frame--luxury:before{inset:5px;border:3px double #d6ad55;box-shadow:inset 0 0 0 3px #5b421c,0 0 12px #d6ad55}
+          .sq-frame--rgb{animation:sq-hue 3s linear infinite}
+          .sq-frame--pattern:before{inset:0;border:10px solid transparent;border-image:repeating-linear-gradient(45deg,#f59e0b 0 8px,#7c3aed 8px 16px,#06b6d4 16px 24px) 1}
+          @keyframes sq-hue{to{filter:hue-rotate(360deg)}}
+          @keyframes sq-orbit{to{filter:hue-rotate(360deg)}}
+          @keyframes sq-pulse{0%,100%{opacity:.5;box-shadow:inset 0 0 8px var(--sq-frame-color),0 0 8px var(--sq-frame-color)}50%{opacity:1;box-shadow:inset 0 0 28px var(--sq-frame-color),0 0 28px var(--sq-frame-color)}}
+          @keyframes sq-corner{from{filter:brightness(.65)}to{filter:brightness(1.8)}}
+        `}</style>
         {scrollingConfig?.enabled && scrollingConfig.message && (
           <div
             className={`pointer-events-none absolute left-0 right-0 overflow-hidden whitespace-nowrap py-2 ${scrollingConfig.position === 'TOP' ? 'top-0' : scrollingConfig.position === 'MIDDLE' ? 'top-1/2 -translate-y-1/2' : 'bottom-0'}`}
