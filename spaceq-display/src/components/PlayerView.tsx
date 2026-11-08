@@ -446,12 +446,14 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
               style={{
                 zIndex: 2147483647,
                 left: '50%',
-                top: positionTop,
-                width: vertical ? 'auto' : '100%',
-                height: vertical ? '100%' : 'auto',
-                maxWidth: vertical ? '100%' : undefined,
-                transform: `translate(-50%, ${positionTransform}) rotate(${rotation}deg)`,
+                top: rotation === 90 || rotation === 270 ? '50%' : positionTop,
+                width: rotation === 90 || rotation === 270 ? `${stageSize.height}px` : '100%',
+                height: rotation === 90 || rotation === 270 ? `${stageSize.width}px` : 'auto',
+                transform: rotation === 90 || rotation === 270
+                  ? `translate(-50%, -50%) rotate(${rotation}deg)`
+                  : `translate(-50%, ${positionTransform})`,
                 transformOrigin: 'center',
+                boxSizing: 'border-box',
                 backgroundColor: scrollingConfig.backgroundColor || 'transparent',
                 color: scrollingConfig.color || '#fff',
                 fontFamily: scrollingConfig.fontFamily || 'Arial',
