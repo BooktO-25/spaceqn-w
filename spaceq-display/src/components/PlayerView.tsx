@@ -444,16 +444,21 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
         `}</style>
         {cubeConfig?.enabled && (() => {
           const size = Math.max(40, Math.min(500, Number(cubeConfig.size) || 140));
+          const width = Math.max(30, Math.min(800, Number(cubeConfig.width) || size));
+          const height = Math.max(30, Math.min(800, Number(cubeConfig.height) || size));
+          const depth = Math.min(width, height);
+          const renderMode = cubeConfig.renderMode || '3D';
+          const screenRotation = [0,90,180,270].includes(Number(cubeConfig.screenRotation)) ? Number(cubeConfig.screenRotation) : 0;
           const faces = cubeConfig.faces || {};
           const names = ['front','right','back','left','top','bottom'];
           const half = size / 2;
           const faceTransforms: Record<string,string> = {
-            front: `translateZ(${half}px)`,
-            right: `rotateY(90deg) translateZ(${half}px)`,
-            back: `rotateY(180deg) translateZ(${half}px)`,
-            left: `rotateY(-90deg) translateZ(${half}px)`,
-            top: `rotateX(90deg) translateZ(${half}px)`,
-            bottom: `rotateX(-90deg) translateZ(${half}px)`,
+            front: `translateZ(${depth/2}px)`,
+            right: `rotateY(90deg) translateZ(${width/2}px)`,
+            back: `rotateY(180deg) translateZ(${depth/2}px)`,
+            left: `rotateY(-90deg) translateZ(${width/2}px)`,
+            top: `rotateX(90deg) translateZ(${height/2}px)`,
+            bottom: `rotateX(-90deg) translateZ(${height/2}px)`,
           };
           const mode = cubeConfig.mode || 'CONTINUOUS';
           const axis = cubeConfig.axis || 'Y';
@@ -462,11 +467,12 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           const duration = mode === 'FACE_BY_FACE' ? Math.max(1, Number(cubeConfig.pauseSeconds) || 2) * 6 : speed;
           const animationName = mode === 'CONTINUOUS' ? (axis === 'X' ? 'sq-cube-spin-x' : axis === 'BOTH' ? 'sq-cube-spin-both' : 'sq-cube-spin-y') : mode === 'FACE_BY_FACE' ? 'sq-cube-steps' : undefined;
           return (
-            <div className="pointer-events-none absolute" style={{ zIndex: 2147483647, left: `${cubeConfig.x ?? 88}%`, top: `${cubeConfig.y ?? 16}%`, width: size, height: size, transform: 'translate(-50%,-50%)', perspective: 1000 }}>
+            <div className="pointer-events-none absolute" style={{ zIndex: 2147483647, left: `${cubeConfig.x ?? 88}%`, top: `${cubeConfig.y ?? 16}%`, width: renderMode === '2D' ? width : width, height, transform: `translate(-50%,-50%) rotate(${screenRotation}deg)`, perspective: 1000 }}>
               <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transform: mode === 'MANUAL' ? `rotateX(${Number(cubeConfig.angleX) || 0}deg) rotateY(${Number(cubeConfig.angleY) || 0}deg)` : undefined, animation: animationName ? `${animationName} ${duration}s linear infinite` : undefined, animationDirection: direction }}>
-                {names.map(name => {
+                {(renderMode === '2D' ? ['front'] : names).map(name => {
                   const face = faces[name] || {};
-                  return <div key={name} style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxSizing: 'border-box', backfaceVisibility: 'hidden', transform: faceTransforms[name], background: face.background || '#B5121B', color: face.color || '#FFFFFF', border: '1px solid rgba(255,255,255,.55)', fontSize: Math.max(10, size * .12), fontWeight: 800, textAlign: 'center', padding: 6 }}>
+                  const faceDimensions:Record<string,React.CSSProperties>={front:{width,height},back:{width,height},right:{width:depth,height,left:(width-depth)/2},left:{width:depth,height,left:(width-depth)/2},top:{width,height:depth,top:(height-depth)/2},bottom:{width,height:depth,top:(height-depth)/2}};
+                  return <div key={name} style={{ position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxSizing: 'border-box', backfaceVisibility: 'hidden', ...faceDimensions[name], transform: renderMode === '2D' ? 'none' : faceTransforms[name], background: face.background || '#B5121B', color: face.color || '#FFFFFF', border: '1px solid rgba(255,255,255,.55)', fontSize: Math.max(10, size * .12), fontWeight: 800, textAlign: 'center', padding: 6 }}>
                     {face.type === 'IMAGE' && face.imageUrl ? <img src={face.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ overflowWrap: 'anywhere' }}>{face.text || 'YOUR AD HERE'}</span>}
                   </div>;
                 })}
