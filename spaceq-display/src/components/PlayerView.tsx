@@ -409,12 +409,31 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
         </div>
         {frameConfig?.enabled && (
           frameConfig.mode === 'UPLOAD' && frameConfig.imageUrl ? (
-            <img
-              src={frameConfig.imageUrl}
-              alt=""
-              className="pointer-events-none absolute inset-0 w-full h-full object-fill"
-              style={{ zIndex: 2147483646 }}
-            />
+            <>
+              <img
+                src={frameConfig.imageUrl}
+                alt=""
+                className="pointer-events-none absolute inset-0 w-full h-full object-fill"
+                style={{ zIndex: 2147483646 }}
+              />
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  zIndex: 2147483647,
+                  border: '10px solid transparent',
+                  borderImage: frameConfig.colorMode === 'RGB'
+                    ? 'linear-gradient(90deg,#ff1744,#ffea00,#00e676,#00b0ff,#d500f9,#ff1744) 1'
+                    : frameConfig.colorMode === 'PATTERN'
+                      ? (frameConfig.pattern === 'DOTS'
+                        ? 'radial-gradient(circle,#f59e0b 3px,transparent 4px) 1'
+                        : 'repeating-linear-gradient(45deg,#f59e0b 0 8px,#7c3aed 8px 16px,#06b6d4 16px 24px) 1')
+                      : `linear-gradient(${frameConfig.color || '#00B3A4'},${frameConfig.color || '#00B3A4'}) 1`,
+                  filter: frameConfig.colorMode === 'RGB' ? 'hue-rotate(0deg)' : undefined,
+                  animation: frameConfig.colorMode === 'RGB' ? 'spaceq-frame-rgb 6s linear infinite' : undefined,
+                }}
+              />
+              <style>{'@keyframes spaceq-frame-rgb{to{filter:hue-rotate(360deg)}}'}</style>
+            </>
           ) : (
             <div
               className="pointer-events-none absolute inset-0"
