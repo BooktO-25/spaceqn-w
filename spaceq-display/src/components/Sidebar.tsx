@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ? [{ id: 'announcement', label: 'Announcement', icon: Rocket }]
       : []),
     { id: 'team', label: 'Team', icon: Users },
-    { id: 'scrolling', label: 'Scrolling Text', icon: MessageSquareText },
+    { id: 'scrolling', label: 'Feature Editor', icon: MessageSquareText },
   ];
 
   const studioItems = [
