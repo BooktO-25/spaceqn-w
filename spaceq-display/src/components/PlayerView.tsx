@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Device, Playlist, ContentItem } from '../types';
 import { getLayoutTemplate } from '../data/layoutTemplates';
 import { PlayerPane } from './PlayerPane';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import {
   Wifi,
   WifiOff,
@@ -46,6 +48,25 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [heartbeatCounter, setHeartbeatCounter] = useState(30);
   const [orientation, setOrientation] = useState<'LANDSCAPE' | 'PORTRAIT'>(device.orientation || 'LANDSCAPE');
   const [primaryStatus, setPrimaryStatus] = useState({ index: 0, total: 1, title: 'System Idle', durationSeconds: 10 });
+  const [scrollingConfig, setScrollingConfig] = useState<any>(null);
+
+  // Shared ticker subscription: this component powers both the dashboard
+  // live preview and the physical kiosk display.
+  useEffect(() => {
+    if (!device.businessId) { setScrollingConfig(null); return; }
+    const globalRef = doc(db, 'scrollingMessages', device.businessId);
+    const deviceRef = doc(db, 'scrollingMessages', `${device.businessId}_devices`);
+    let globalConfig: any = null;
+    let deviceConfig: any = null;
+    const publish = () => {
+      const selected = deviceConfig?.enabled && (deviceConfig.deviceIds || []).includes(device.id)
+        ? deviceConfig : null;
+      setScrollingConfig(selected || (globalConfig?.enabled ? globalConfig : null));
+    };
+    const stopGlobal = onSnapshot(globalRef, snap => { globalConfig = snap.exists() ? snap.data() : null; publish(); }, error => console.warn('Global scrolling message listener:', error));
+    const stopDevice = onSnapshot(deviceRef, snap => { deviceConfig = snap.exists() ? snap.data() : null; publish(); }, error => console.warn('Device scrolling message listener:', error));
+    return () => { stopGlobal(); stopDevice(); };
+  }, [device.businessId, device.id]);
 
   // Keep the real kiosk in sync when the dashboard changes the physical
   // orientation. The preview toggle below can still temporarily switch the
@@ -337,6 +358,15 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           )
         )}
         </div>
+        {scrollingConfig?.enabled && scrollingConfig.message && (
+          <div
+            className={`pointer-events-none absolute left-0 right-0 overflow-hidden whitespace-nowrap py-2 ${scrollingConfig.position === 'TOP' ? 'top-0' : scrollingConfig.position === 'MIDDLE' ? 'top-1/2 -translate-y-1/2' : 'bottom-0'}`}
+            style={{ zIndex: 2147483647, backgroundColor: scrollingConfig.backgroundColor || 'transparent', color: scrollingConfig.color || '#fff', fontFamily: scrollingConfig.fontFamily || 'Arial', fontSize: `${scrollingConfig.fontSize || 32}px`, lineHeight: 1.3 }}
+          >
+            <div style={{ display: 'inline-block', minWidth: 'max-content', paddingLeft: '100%', animation: `spaceq-shared-marquee ${Math.max(8, 120 - (scrollingConfig.speed || 24))}s linear infinite` }}>{scrollingConfig.message}</div>
+            <style>{'@keyframes spaceq-shared-marquee{from{transform:translateX(0)}to{transform:translateX(-100%)}}'}</style>
+          </div>
+        )}
       </div>
 
       {/* Bottom Status Ticker — dashboard preview only */}
