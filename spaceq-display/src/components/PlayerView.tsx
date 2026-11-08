@@ -51,6 +51,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [scrollingConfig, setScrollingConfig] = useState<any>(null);
   const [frameConfig, setFrameConfig] = useState<any>(null);
   const [cubeConfig, setCubeConfig] = useState<any>(null);
+  const [mascotConfig, setMascotConfig] = useState<any>(null);
 
   // Shared ticker subscription: this component powers both the dashboard
   // live preview and the physical kiosk display.
@@ -59,6 +60,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     // global and selected-device settings are being loaded.
     setScrollingConfig(null);
     setCubeConfig(null);
+    setMascotConfig(null);
     if (!device.businessId) return;
 
     const globalRef = doc(db, 'scrollingMessages', device.businessId);
@@ -110,6 +112,10 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       const selectedCube = selectedForThisDevice ? deviceConfig?.cube : null;
       const activeCube = globalCube?.enabled ? globalCube : selectedCube;
       setCubeConfig(activeCube?.enabled ? activeCube : null);
+      const globalMascot = globalConfig?.mascot;
+      const selectedMascot = selectedForThisDevice ? deviceConfig?.mascot : null;
+      const activeMascot = globalMascot?.enabled ? globalMascot : selectedMascot;
+      setMascotConfig(activeMascot?.enabled ? activeMascot : null);
     };
 
     const stopGlobal = onSnapshot(
@@ -480,6 +486,20 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
               <style>{`@keyframes sq-cube-spin-y{from{transform:rotateX(-18deg) rotateY(0)}to{transform:rotateX(-18deg) rotateY(360deg)}}@keyframes sq-cube-spin-x{from{transform:rotateX(0) rotateY(-18deg)}to{transform:rotateX(360deg) rotateY(-18deg)}}@keyframes sq-cube-spin-both{from{transform:rotateX(0) rotateY(0)}to{transform:rotateX(360deg) rotateY(360deg)}}@keyframes sq-cube-steps{0%,12%{transform:rotateX(-18deg) rotateY(0)}16.66%,29%{transform:rotateX(-18deg) rotateY(-60deg)}33.33%,45%{transform:rotateX(-18deg) rotateY(-120deg)}50%,62%{transform:rotateX(-18deg) rotateY(-180deg)}66.66%,79%{transform:rotateX(-18deg) rotateY(-240deg)}83.33%,95%{transform:rotateX(-18deg) rotateY(-300deg)}100%{transform:rotateX(-18deg) rotateY(-360deg)}}`}</style>
             </div>
           );
+        })()}
+        {mascotConfig?.enabled && (() => {
+          const mascotEmojis:Record<string,string>={buddy:'🧑🏻‍💼',chef:'👨🏻‍🍳',robot:'🤖',cat:'🐱',fox:'🦊',bear:'🐻',astronaut:'🧑🏻‍🚀',mascot:'⭐'};
+          const animation=String(mascotConfig.animation||'BOUNCE').toLowerCase();
+          const animationName=animation==='idle'?'none':`sq-mascot-${animation}`;
+          const size=Math.max(60,Math.min(420,Number(mascotConfig.size)||190));
+          return <div className="pointer-events-none absolute" style={{zIndex:2147483646,left:`${mascotConfig.x??82}%`,top:`${mascotConfig.y??68}%`,width:size,height:size,transform:'translate(-50%,-50%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+            {mascotConfig.showBubble!==false&&mascotConfig.message&&<div style={{maxWidth:size*1.8,marginBottom:8,borderRadius:18,background:'#fff',color:'#172033',padding:'9px 13px',fontSize:Math.max(12,size*.085),fontWeight:800,lineHeight:1.25,textAlign:'center',boxShadow:'0 5px 18px rgba(0,0,0,.28)'}}>{mascotConfig.message}</div>}
+            <div style={{width:size*.82,height:size*.82,display:'flex',alignItems:'center',justifyContent:'center',animation:animationName==='none'?'none':`${animationName} 2s ease-in-out infinite`,transformOrigin:'50% 85%'}}>
+              {mascotConfig.imageUrl?<img src={mascotConfig.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<span style={{fontSize:size*.68,lineHeight:1}}>{mascotEmojis[mascotConfig.character]||'🧑🏻‍💼'}</span>}
+            </div>
+            {mascotConfig.name&&<span style={{marginTop:2,color:'#fff',fontSize:Math.max(10,size*.07),fontWeight:800,textShadow:'0 2px 5px #000'}}>{mascotConfig.name}</span>}
+            <style>{`@keyframes sq-mascot-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}@keyframes sq-mascot-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes sq-mascot-wave{0%,100%{transform:rotate(0)}25%{transform:rotate(-9deg)}75%{transform:rotate(9deg)}}@keyframes sq-mascot-dance{0%,100%{transform:rotate(0) translateY(0)}25%{transform:rotate(-8deg) translateY(-8px)}75%{transform:rotate(8deg) translateY(-8px)}}`}</style>
+          </div>;
         })()}
         {scrollingConfig?.enabled && scrollingConfig.message && (() => {
           const direction = scrollingConfig.direction || 'RIGHT_TO_LEFT';
