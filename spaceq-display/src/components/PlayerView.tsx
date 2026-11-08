@@ -452,12 +452,14 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                 transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
                 transformOrigin: 'center',
                 boxSizing: 'border-box',
-                backgroundColor: scrollingConfig.backgroundColor || 'transparent',
+                backgroundColor: scrollingConfig.backgroundTransparent ? 'transparent' : (scrollingConfig.backgroundColor || 'transparent'),
                 color: scrollingConfig.color || '#fff',
                 fontFamily: scrollingConfig.fontFamily || 'Arial',
                 fontSize: `${scrollingConfig.fontSize || 32}px`,
-                lineHeight: 1.3,
-                padding: '8px 0',
+                lineHeight: 1.1,
+                padding: `${Math.max(2, Math.round((scrollingConfig.fontSize || 32) * 0.12))}px 0`,
+                textShadow: 'none',
+                boxShadow: 'none',
               }}
             >
               <div
