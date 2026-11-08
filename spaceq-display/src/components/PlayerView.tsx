@@ -465,10 +465,10 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           const direction = cubeConfig.direction === 'ANTICLOCKWISE' ? 'reverse' : 'normal';
           const speed = Math.max(2, 20 - (Number(cubeConfig.speed) || 12));
           const duration = mode === 'FACE_BY_FACE' ? Math.max(1, Number(cubeConfig.pauseSeconds) || 2) * 6 : speed;
-          const animationName = mode === 'CONTINUOUS' ? (axis === 'X' ? 'sq-cube-spin-x' : axis === 'BOTH' ? 'sq-cube-spin-both' : 'sq-cube-spin-y') : mode === 'FACE_BY_FACE' ? 'sq-cube-steps' : undefined;
+          const animationName = renderMode === '3D' && mode === 'CONTINUOUS' ? (axis === 'X' ? 'sq-cube-spin-x' : axis === 'BOTH' ? 'sq-cube-spin-both' : 'sq-cube-spin-y') : renderMode === '3D' && mode === 'FACE_BY_FACE' ? 'sq-cube-steps' : undefined;
           return (
             <div className="pointer-events-none absolute" style={{ zIndex: 2147483647, left: `${cubeConfig.x ?? 88}%`, top: `${cubeConfig.y ?? 16}%`, width: renderMode === '2D' ? width : width, height, transform: `translate(-50%,-50%) rotate(${screenRotation}deg)`, perspective: 1000 }}>
-              <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transform: mode === 'MANUAL' ? `rotateX(${Number(cubeConfig.angleX) || 0}deg) rotateY(${Number(cubeConfig.angleY) || 0}deg)` : undefined, animation: animationName ? `${animationName} ${duration}s linear infinite` : undefined, animationDirection: direction }}>
+              <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transform: renderMode === '2D' ? 'none' : mode === 'MANUAL' ? `rotateX(${Number(cubeConfig.angleX) || 0}deg) rotateY(${Number(cubeConfig.angleY) || 0}deg)` : 'rotateX(-18deg) rotateY(-25deg)', animation: animationName ? `${animationName} ${duration}s linear infinite` : undefined, animationDirection: direction }}>
                 {(renderMode === '2D' ? ['front'] : names).map(name => {
                   const face = faces[name] || {};
                   const faceDimensions:Record<string,React.CSSProperties>={front:{width,height},back:{width,height},right:{width:depth,height,left:(width-depth)/2},left:{width:depth,height,left:(width-depth)/2},top:{width,height:depth,top:(height-depth)/2},bottom:{width,height:depth,top:(height-depth)/2}};
