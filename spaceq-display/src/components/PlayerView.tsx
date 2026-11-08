@@ -48,7 +48,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [heartbeatCounter, setHeartbeatCounter] = useState(30);
   const [orientation, setOrientation] = useState<'LANDSCAPE' | 'PORTRAIT'>(device.orientation || 'LANDSCAPE');
   const [primaryStatus, setPrimaryStatus] = useState({ index: 0, total: 1, title: 'System Idle', durationSeconds: 10 });
-  const [scrollingConfig, setScrollingConfig] = useState<any>(null);
+  const [scrollingConfig, setScrollingConfig] = useState<any>(null);\n  const [frameConfig, setFrameConfig] = useState<any>(null);
 
   // Shared ticker subscription: this component powers both the dashboard
   // live preview and the physical kiosk display.
@@ -93,6 +93,14 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           ? activeConfig
           : null
       );
+
+      // Frames follow the same master/fallback hierarchy as scrolling text:
+      // an enabled global frame controls every display; only when it is OFF
+      // can a selected-device frame take over.
+      const globalFrame = globalConfig?.frame;
+      const selectedFrame = selectedForThisDevice ? deviceConfig?.frame : null;
+      const activeFrame = globalFrame?.enabled ? globalFrame : selectedFrame;
+      setFrameConfig(activeFrame?.enabled ? activeFrame : null);
     };
 
     const stopGlobal = onSnapshot(
@@ -399,6 +407,42 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           )
         )}
         </div>
+        {frameConfig?.enabled && (
+          frameConfig.mode === 'UPLOAD' && frameConfig.imageUrl ? (
+            <img
+              src={frameConfig.imageUrl}
+              alt=""
+              className="pointer-events-none absolute inset-0 w-full h-full object-fill"
+              style={{ zIndex: 2147483646 }}
+            />
+          ) : (
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                zIndex: 2147483646,
+                border: frameConfig.colorMode === 'RGB'
+                  ? '12px solid transparent'
+                  : frameConfig.colorMode === 'PATTERN'
+                    ? '12px solid transparent'
+                    : `12px solid ${frameConfig.color || '#00B3A4'}`,
+                borderImage: frameConfig.colorMode === 'RGB'
+                  ? 'linear-gradient(90deg,#ff1744,#ffea00,#00e676,#00b0ff,#d500f9,#ff1744) 1'
+                  : frameConfig.colorMode === 'PATTERN'
+                    ? (frameConfig.pattern === 'DOTS'
+                      ? 'radial-gradient(circle,#f59e0b 3px,transparent 4px) 1'
+                      : frameConfig.pattern === 'CHECKER'
+                        ? 'repeating-conic-gradient(#7c3aed 0 25%,#06b6d4 0 50%) 1'
+                        : 'repeating-linear-gradient(45deg,#f59e0b 0 8px,#7c3aed 8px 16px,#06b6d4 16px 24px) 1')
+                    : undefined,
+                boxShadow: frameConfig.template === 'neon' ? 'inset 0 0 28px 6px currentColor' : undefined,
+                color: frameConfig.color || '#00B3A4',
+                outline: frameConfig.template === 'double' ? '4px double currentColor' : undefined,
+                outlineOffset: frameConfig.template === 'corner' ? '-24px' : undefined,
+                borderStyle: frameConfig.template === 'festive' ? 'dotted' : frameConfig.template === 'double' ? 'double' : 'solid',
+              }}
+            />
+          )
+        )}
         {scrollingConfig?.enabled && scrollingConfig.message && (
           <div
             className={`pointer-events-none absolute left-0 right-0 overflow-hidden whitespace-nowrap py-2 ${scrollingConfig.position === 'TOP' ? 'top-0' : scrollingConfig.position === 'MIDDLE' ? 'top-1/2 -translate-y-1/2' : 'bottom-0'}`}
