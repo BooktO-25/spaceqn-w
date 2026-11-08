@@ -53,18 +53,49 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   // Shared ticker subscription: this component powers both the dashboard
   // live preview and the physical kiosk display.
   useEffect(() => {
-    if (!device.businessId) { setScrollingConfig(null); return; }
+    // Clear the previous device's ticker immediately while the new device's
+    // global and selected-device settings are being loaded.
+    setScrollingConfig(null);
+    if (!device.businessId) return;
+
     const globalRef = doc(db, 'scrollingMessages', device.businessId);
     const deviceRef = doc(db, 'scrollingMessages', `${device.businessId}_devices`);
     let globalConfig: any = null;
     let deviceConfig: any = null;
+    let globalLoaded = false;
+    let deviceLoaded = false;
+
     const publish = () => {
-      const selected = deviceConfig?.enabled && (deviceConfig.deviceIds || []).includes(device.id)
-        ? deviceConfig : null;
-      setScrollingConfig(selected || (globalConfig?.enabled ? globalConfig : null));
+      // Wait for both documents so the global ticker cannot briefly flash
+      // before a selected-device override is received.
+      if (!globalLoaded || !deviceLoaded) return;
+
+      const selectedForThisDevice =
+        Array.isArray(deviceConfig?.deviceIds) &&
+        deviceConfig.deviceIds.includes(device.id);
+
+      // Selected-device configuration has precedence for targeted screens.
+      // Even when it is OFF, it suppresses the global ticker on that screen.
+      // All other screens use the global configuration as the fallback.
+      const activeConfig = selectedForThisDevice ? deviceConfig : globalConfig;
+      setScrollingConfig(
+        activeConfig?.enabled && typeof activeConfig.message === 'string' && activeConfig.message.trim()
+          ? activeConfig
+          : null
+      );
     };
-    const stopGlobal = onSnapshot(globalRef, snap => { globalConfig = snap.exists() ? snap.data() : null; publish(); }, error => console.warn('Global scrolling message listener:', error));
-    const stopDevice = onSnapshot(deviceRef, snap => { deviceConfig = snap.exists() ? snap.data() : null; publish(); }, error => console.warn('Device scrolling message listener:', error));
+
+    const stopGlobal = onSnapshot(
+      globalRef,
+      snap => { globalConfig = snap.exists() ? snap.data() : null; globalLoaded = true; publish(); },
+      error => { console.warn('Global scrolling message listener:', error); globalLoaded = true; publish(); }
+    );
+    const stopDevice = onSnapshot(
+      deviceRef,
+      snap => { deviceConfig = snap.exists() ? snap.data() : null; deviceLoaded = true; publish(); },
+      error => { console.warn('Device scrolling message listener:', error); deviceLoaded = true; publish(); }
+    );
+
     return () => { stopGlobal(); stopDevice(); };
   }, [device.businessId, device.id]);
 
