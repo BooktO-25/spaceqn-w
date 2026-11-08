@@ -20,11 +20,11 @@ type FrameConfig = {
   deviceIds: string[];
 };
 const templates = [
-  { id: 'classic', name: 'Classic Border', description: 'Clean elegant outline' },
-  { id: 'double', name: 'Double Line', description: 'Two-layer premium frame' },
-  { id: 'corner', name: 'Corner Accents', description: 'Minimal four-corner design' },
-  { id: 'neon', name: 'Neon Glow', description: 'Soft illuminated edge' },
-  { id: 'festive', name: 'Festive Pattern', description: 'Decorative patterned edge' },
+  { id: 'aurora', name: 'Aurora Flow', description: 'Animated gradient border' },
+  { id: 'orbit', name: 'Orbit Dash', description: 'Moving luminous dash border' },
+  { id: 'pulse', name: 'Pulse Glow', description: 'Breathing neon light' },
+  { id: 'corner', name: 'Corner Sweep', description: 'Animated corner accents' },
+  { id: 'luxury', name: 'Luxury Double', description: 'Elegant double-line gold frame' },
 ];
 const emptyFrame = (): FrameConfig => ({
   enabled: false, mode: 'TEMPLATE', template: 'classic', imageUrl: '',
@@ -89,13 +89,24 @@ export const FeatureEditorView: React.FC<{ businessId: string; devices: Device[]
     finally { setSaving(false); }
   };
 
-  const frameStyle: React.CSSProperties = frame.colorMode === 'RGB'
-    ? { border: '10px solid transparent', borderImage: 'linear-gradient(90deg,#ff1744,#ffea00,#00e676,#00b0ff,#d500f9,#ff1744) 1', animation: 'frame-rgb 8s linear infinite' }
-    : frame.colorMode === 'PATTERN'
-      ? { border: '10px solid transparent', borderImage: 'repeating-linear-gradient(45deg,#f59e0b 0 8px,#7c3aed 8px 16px,#06b6d4 16px 24px) 1' }
-      : { border: `10px solid ${frame.color}` };
+  const previewFrameClass = 'sq-frame sq-frame--' + frame.template + (frame.colorMode === 'RGB' ? ' sq-frame--rgb' : '') + (frame.colorMode === 'PATTERN' ? ' sq-frame--pattern' : '');
+  const previewFrameStyle: React.CSSProperties = { '--sq-frame-color': frame.color || '#00B3A4' } as React.CSSProperties;
 
   return <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <style>{`.sq-frame{position:absolute;inset:0;pointer-events:none;--sq-frame-color:#00B3A4}
+.sq-frame:before{content:'';position:absolute;pointer-events:none}
+.sq-frame--aurora:before{inset:0;border:9px solid transparent;border-image:linear-gradient(120deg,#00e5ff,#7c3aed,#ff2d95,#facc15,#00e5ff) 1;filter:drop-shadow(0 0 7px #00e5ff);animation:sq-hue 4s linear infinite}
+.sq-frame--orbit:before{inset:0;border:8px dashed #00e5ff;box-shadow:inset 0 0 12px #00e5ff,0 0 12px #00e5ff;animation:sq-orbit 5s linear infinite}
+.sq-frame--pulse:before{inset:5px;border:8px solid var(--sq-frame-color);box-shadow:inset 0 0 20px var(--sq-frame-color),0 0 20px var(--sq-frame-color);animation:sq-pulse 2s ease-in-out infinite}
+.sq-frame--corner:before{inset:0;background:linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left top/42px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left top/5px 42px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right top/42px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right top/5px 42px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left bottom/42px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left bottom/5px 42px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right bottom/42px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right bottom/5px 42px no-repeat;animation:sq-corner 2s ease-in-out infinite alternate}
+.sq-frame--luxury:before{inset:5px;border:3px double #d6ad55;box-shadow:inset 0 0 0 3px #5b421c,0 0 12px #d6ad55}
+.sq-frame--rgb{animation:sq-hue 3s linear infinite}
+.sq-frame--pattern:before{inset:0;border:10px solid transparent;border-image:repeating-linear-gradient(45deg,#f59e0b 0 8px,#7c3aed 8px 16px,#06b6d4 16px 24px) 1}
+@keyframes sq-hue{to{filter:hue-rotate(360deg)}}
+@keyframes sq-orbit{to{filter:hue-rotate(360deg)}}
+@keyframes sq-pulse{0%,100%{opacity:.5;box-shadow:inset 0 0 8px var(--sq-frame-color),0 0 8px var(--sq-frame-color)}50%{opacity:1;box-shadow:inset 0 0 28px var(--sq-frame-color),0 0 28px var(--sq-frame-color)}}
+@keyframes sq-corner{from{filter:brightness(.65)}to{filter:brightness(1.8)}}`}</style>
+
     <div><p className="text-xs font-bold uppercase tracking-widest text-rose-500">Management</p><h1 className="text-2xl font-bold mt-1">Feature Editor</h1><p className="text-sm text-slate-500 mt-1">Manage on-screen scrolling messages and decorative display frames.</p></div>
     <div className="flex flex-wrap gap-2">
       <button onClick={() => setFeature('TICKER')} className={`px-4 py-2 rounded-lg text-sm font-semibold ${feature === 'TICKER' ? 'bg-blue-600 text-white' : 'bg-slate-500/10'}`}>Scrolling Text</button>
@@ -116,7 +127,7 @@ export const FeatureEditorView: React.FC<{ businessId: string; devices: Device[]
             <button disabled={saving || uploading} onClick={saveFrame} className="w-full rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 px-4 py-3 text-white font-bold flex items-center justify-center gap-2"><Save size={16}/>{saving ? 'Publishing…' : 'Save & Publish'}</button>
             {notice && <p className="text-xs text-slate-500">{notice}</p>}
           </div>
-          <div><p className="text-sm font-semibold mb-2">Live frame preview</p><div className="relative aspect-video rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center"><div className="absolute inset-5 flex items-center justify-center text-slate-600 text-xs tracking-widest">DISPLAY CONTENT AREA</div>{frame.mode === 'UPLOAD' && frame.imageUrl ? <img src={frame.imageUrl} className="absolute inset-0 w-full h-full object-fill pointer-events-none" alt="Uploaded frame preview"/> : <div className={`absolute inset-0 pointer-events-none ${frame.template === 'double' ? 'border-[12px] border-double' : frame.template === 'corner' ? 'border-[14px] border-dashed' : frame.template === 'neon' ? 'shadow-[inset_0_0_28px_6px]' : frame.template === 'festive' ? 'border-[16px] border-dotted' : 'border-[10px]'}`} style={frameStyle}/>}</div><p className="text-xs text-slate-500 mt-2">Preview is illustrative; the saved frame is rendered over every active display in the selected scope.</p></div>
+          <div><p className="text-sm font-semibold mb-2">Live frame preview</p><div className="relative aspect-video rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center"><div className="absolute inset-5 flex items-center justify-center text-slate-600 text-xs tracking-widest">DISPLAY CONTENT AREA</div>{frame.mode === 'UPLOAD' && frame.imageUrl ? <img src={frame.imageUrl} className="absolute inset-0 w-full h-full object-fill pointer-events-none" alt="Uploaded frame preview"/> : <div className={previewFrameClass} style={previewFrameStyle}/>}</div><p className="text-xs text-slate-500 mt-2">Preview is illustrative; the saved frame is rendered over every active display in the selected scope.</p></div>
         </div>
       </div>
     </>}
