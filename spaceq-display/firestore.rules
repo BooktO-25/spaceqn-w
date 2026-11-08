@@ -1,0 +1,222 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function hasUserDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isSuperAdmin() {
+      return hasUserDoc() && getUserData().get('role', '') == 'SUPER_ADMIN';
+    }
+
+    function getUserBusinessId() {
+      return hasUserDoc() ? getUserData().get('businessId', '') : '';
+    }
+
+    function myRole() {
+      return hasUserDoc() ? getUserData().get('role', '') : '';
+    }
+
+    // --- Regional Admin: appointed by Super Admin, scoped to one or more
+    // geographic regions (see Business.region). Acts like a Super Admin but
+    // only within businesses whose region they've been assigned.
+    function myAssignedRegions() {
+      return hasUserDoc() ? getUserData().get('assignedRegions', []) : [];
+    }
+    function isRegionalAdmin() {
+      return hasUserDoc() && getUserData().get('role', '') == 'REGIONAL_ADMIN';
+    }
+    function isRegionalAdminForRegion(region) {
+      return isRegionalAdmin() && region in myAssignedRegions();
+    }
+    function isRegionalAdminForBusiness(businessId) {
+      return isRegionalAdmin()
+        && exists(/databases/$(database)/documents/businesses/$(businessId))
+        && isRegionalAdminForRegion(get(/databases/$(database)/documents/businesses/$(businessId)).data.get('region', ''));
+    }
+
+    // Role -> action matrix, mirrors src/lib/permissions.ts. Enforced here as
+    // the real security boundary; the app's UI gating is just for a good
+    // experience, not the source of truth.
+    function canManageTeam() {
+      return isSuperAdmin() || myRole() == 'BUSINESS_OWNER';
+    }
+    function canManageDevices() {
+      return isSuperAdmin() || myRole() in ['BUSINESS_OWNER', 'MANAGER'];
+    }
+    function canManageLocations() {
+      return canManageDevices();
+    }
+    function canManageContent() {
+      return isSuperAdmin() || myRole() in ['BUSINESS_OWNER', 'MANAGER', 'DESIGNER'];
+    }
+    function canManagePlaylists() {
+      return canManageContent();
+    }
+
+    function isOwnTenant(businessId) {
+      return getUserBusinessId() == businessId;
+    }
+
+    // Users Collection Rules
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || isRegionalAdmin() || isOwnTenant(resource.data.get('businessId', '')));
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && (request.resource.data.get('role', '') != 'SUPER_ADMIN' || isSuperAdmin())
+        && (request.resource.data.get('role', '') != 'REGIONAL_ADMIN' || isSuperAdmin());
+      allow update: if isSignedIn()
+        && (
+          // Self-updates can't touch role or assignedRegions, and can't
+          // reassign an already-set businessId (that would be tenant-
+          // hopping) — but CAN set businessId for the first time, going
+          // from '' to a real value once, to complete onboarding.
+          (request.auth.uid == userId
+            && request.resource.data.get('role', '') == resource.data.get('role', '')
+            && (
+              request.resource.data.get('businessId', '') == resource.data.get('businessId', '')
+              || (resource.data.get('businessId', '') == '' && request.resource.data.get('businessId', '') != '')
+            ))
+          || isSuperAdmin()
+          // A Business Owner may change a role of someone already in their
+          // own tenant, but never grant SUPER_ADMIN or REGIONAL_ADMIN, and
+          // never touch businessId.
+          || (canManageTeam()
+              && isOwnTenant(resource.data.get('businessId', ''))
+              && request.resource.data.get('businessId', '') == resource.data.get('businessId', '')
+              && request.resource.data.get('role', '') != 'SUPER_ADMIN'
+              && request.resource.data.get('role', '') != 'REGIONAL_ADMIN')
+        );
+      allow delete: if isSuperAdmin();
+    }
+
+    // Team invites - created by a Business Owner for a specific email, and
+    // consumed by that person the moment they sign up.
+    match /invites/{inviteId} {
+      allow read: if isSignedIn() && (
+        isSuperAdmin()
+        || isOwnTenant(resource.data.get('businessId', ''))
+        || resource.data.get('email', '') == request.auth.token.email.lower()
+      );
+      allow create: if isSignedIn() && (isSuperAdmin() || (canManageTeam() && isOwnTenant(request.resource.data.businessId)));
+      allow update: if isSignedIn() && (
+        isSuperAdmin()
+        || isOwnTenant(resource.data.get('businessId', ''))
+        || resource.data.get('email', '') == request.auth.token.email.lower()
+      );
+      allow delete: if isSuperAdmin() || (isSignedIn() && canManageTeam() && isOwnTenant(resource.data.get('businessId', '')));
+    }
+
+    // Businesses Collection Rules
+    match /businesses/{businessId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(businessId) || getUserBusinessId() == businessId || (resource != null && resource.data.id == getUserBusinessId()));
+      // A brand-new signed-in user creating their very first business can't
+      // already own it (that's the whole point of this call) — so creation
+      // only needs to be a genuinely new doc whose ID matches the path.
+      // Ownership is established immediately after via the user profile
+      // write, in the same onboarding flow.
+      allow create: if isSignedIn() && request.resource.data.id == businessId;
+      allow update, delete: if isSuperAdmin() || isRegionalAdminForBusiness(businessId) || (isSignedIn() && canManageTeam() && getUserBusinessId() == businessId);
+    }
+
+    // Tenant Isolated Collections
+    match /locations/{locationId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
+      allow create: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId) || (canManageLocations() && getUserBusinessId() == request.resource.data.businessId));
+      allow update, delete: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || (canManageLocations() && getUserBusinessId() == resource.data.businessId));
+    }
+
+    match /devices/{deviceId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
+      allow update, delete: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || (canManageDevices() && getUserBusinessId() == resource.data.businessId));
+
+      // --- Kiosk pairing (no login at all — this is intentional) ---
+      // A brand-new TV mints its own ID and writes it ONCE as a self-service
+      // "unclaimed" placeholder. The doc ID must equal its own pairingCode,
+      // it must start unclaimed (businessId ''), and — critically — this
+      // only succeeds if no document with that ID already exists, so a
+      // stranger can never overwrite or hijack an existing device this way.
+      allow create: if request.resource.data.businessId == ''
+        && request.resource.data.status == 'PAIRING'
+        && request.resource.data.pairingCode == deviceId;
+
+      // Any physical TV needs to read its own doc with zero login, and any
+      // Business Owner needs to look a code up by ID before claiming it.
+      // This does not allow LISTING devices — only fetching one exact ID —
+      // so a stranger can't enumerate anyone's displays this way.
+      allow get: if true;
+
+      // Heartbeat + playback telemetry ("proof of play"): no login required,
+      // but the kiosk may only ever touch these specific fields on its own
+      // device doc — nothing else. Same unauthenticated-write tradeoff as
+      // the plain heartbeat already accepted: there's no way to verify the
+      // write came from that device specifically, only that it's scoped to
+      // exactly these fields.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly([
+               'lastSeenAt',
+               'status',
+               'totalPlaybackSeconds',
+               'totalPlaybackCount',
+               'lastPlaybackAt',
+               'lastPlayedContentId',
+               'lastPlayedContentTitle',
+               'lastPlaybackDurationSeconds',
+               'lastSyncCommandId',
+               'lastSyncAt',
+               'lastSyncStatus',
+               'lastSyncError'
+             ])
+             && (!request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                   'lastSyncCommandId', 'lastSyncAt', 'lastSyncStatus', 'lastSyncError'
+                 ])
+                 || request.resource.data.get('lastSyncCommandId', '') == resource.data.get('syncCommandId', ''))
+             && request.resource.data.get('status', resource.data.get('status', 'ONLINE')) in ['ONLINE', 'PAIRING', 'SYNCING'];
+
+      // Claiming: a signed-in Business Owner/Manager turns an unclaimed
+      // pairing placeholder into a real device belonging to their tenant.
+      // Only works while it's still genuinely unclaimed, and only into
+      // their OWN business — never someone else's.
+      allow update: if isSignedIn() && canManageDevices()
+        && resource.data.status == 'PAIRING' && resource.data.businessId == ''
+        && request.resource.data.businessId == getUserBusinessId();
+    }
+
+    match /contents/{contentId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
+      allow create: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId) || (canManageContent() && getUserBusinessId() == request.resource.data.businessId));
+      allow update, delete: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || (canManageContent() && getUserBusinessId() == resource.data.businessId));
+
+      // Kiosk player fetches each content item it needs by exact ID (never a
+      // collection-wide query), so a narrow `get` is enough - this keeps an
+      // unauthenticated kiosk session from ever listing/enumerating another
+      // business's content library. No login required (kiosks never sign in).
+      allow get: if true;
+    }
+
+    match /playlists/{playlistId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
+      allow create: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId) || (canManagePlaylists() && getUserBusinessId() == request.resource.data.businessId));
+      allow update, delete: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || (canManagePlaylists() && getUserBusinessId() == resource.data.businessId));
+
+      // Kiosk player needs to fetch every playlist assigned to its device by
+      // ID. No login required (kiosks never sign in).
+      allow get: if true;
+    }
+
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
+      allow create: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId) || getUserBusinessId() == request.resource.data.businessId);
+      allow update, delete: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
+    }
+  }
+}

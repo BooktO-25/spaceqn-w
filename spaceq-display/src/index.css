@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Slide transition effects — applied to the active IMAGE in PlayerPane based
+   on the content item's transitionEffect field. */
+@keyframes spaceq-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes spaceq-slide {
+  from { opacity: 0; transform: translateX(4%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes spaceq-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+
+.transition-fade {
+  animation: spaceq-fade 700ms ease-out both;
+}
+.transition-slide {
+  animation: spaceq-slide 700ms ease-out both;
+}
+/* Ken Burns style slow zoom, runs for the whole slide duration (duration set
+   inline via style since it depends on each slide's own timing). */
+.transition-zoom {
+  animation-name: spaceq-zoom;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+
+/* Zone label badge in split-screen mode — visible briefly on load, then
+   fades out so it doesn't clutter the actual customer-facing display. */
+@keyframes spaceq-zone-label-fade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.zone-label-autohide {
+  animation: spaceq-zone-label-fade 6s ease-in forwards;
+}

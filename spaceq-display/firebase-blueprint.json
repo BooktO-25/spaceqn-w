@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "businesses": {
+      "title": "Business",
+      "description": "Tenant business entity",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "brandColor": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "totalStorageUsedMb": { "type": "number" },
+        "ownerEmail": { "type": "string" }
+      },
+      "required": ["id", "name", "slug"]
+    },
+    "locations": {
+      "title": "Location",
+      "description": "Physical branch location of a business",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "country": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "businessId", "name"]
+    },
+    "devices": {
+      "title": "Device",
+      "description": "Edge digital signage TV player device",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "pairingCode": { "type": "string" },
+        "name": { "type": "string" },
+        "businessId": { "type": "string" },
+        "locationId": { "type": "string" },
+        "activePlaylistId": { "type": "string" },
+        "status": { "type": "string" },
+        "orientation": { "type": "string" },
+        "ipAddress": { "type": "string" },
+        "appVersion": { "type": "string" },
+        "lastSeenAt": { "type": "string" },
+        "registeredAt": { "type": "string" },
+        "storageCachedMb": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "businessId"]
+    },
+    "contents": {
+      "title": "ContentItem",
+      "description": "Media asset in content library",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "url": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "durationSeconds": { "type": "number" },
+        "fileSizeBytes": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "businessId", "title", "type", "url"]
+    },
+    "playlists": {
+      "title": "Playlist",
+      "description": "Media playback sequence and schedules",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "items": { "type": "array" },
+        "loop": { "type": "boolean" },
+        "shuffle": { "type": "boolean" },
+        "schedules": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "businessId", "name"]
+    },
+    "users": {
+      "title": "User",
+      "description": "System user account profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "businessId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "activityLogs": {
+      "title": "ActivityLog",
+      "description": "Audit trail activity log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "businessId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "targetType": { "type": "string" },
+        "targetName": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "action", "timestamp"]
+    }
+  }
+}

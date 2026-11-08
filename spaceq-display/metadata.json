@@ -1,0 +1,6 @@
+{
+  "name": "SPACEQ Display",
+  "description": "Enterprise Business Display Operating System for Remote Digital Signage Management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
