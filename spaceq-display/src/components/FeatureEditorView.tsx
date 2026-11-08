@@ -5,6 +5,7 @@ import { uploadToCloudinary } from '../lib/cloudinary';
 import { Device } from '../types';
 import { ImagePlus, Save, Monitor, Globe2, Loader2, Sparkles } from 'lucide-react';
 import { ScrollingTextView } from './ScrollingTextView';
+import { CubeEditor } from './CubeEditor';
 
 type Scope = 'GLOBAL' | 'DEVICES';
 type FrameMode = 'TEMPLATE' | 'UPLOAD';
@@ -32,7 +33,7 @@ const emptyFrame = (): FrameConfig => ({
 });
 
 export const FeatureEditorView: React.FC<{ businessId: string; devices: Device[]; darkMode: boolean }> = ({ businessId, devices, darkMode }) => {
-  const [feature, setFeature] = useState<'TICKER' | 'FRAMES'>('TICKER');
+  const [feature, setFeature] = useState<'TICKER' | 'FRAMES' | 'CUBE'>('TICKER');
   const [scope, setScope] = useState<Scope>('GLOBAL');
   const [globalFrame, setGlobalFrame] = useState<FrameConfig>(emptyFrame());
   const [deviceFrame, setDeviceFrame] = useState<FrameConfig>(emptyFrame());
@@ -111,8 +112,9 @@ export const FeatureEditorView: React.FC<{ businessId: string; devices: Device[]
     <div className="flex flex-wrap gap-2">
       <button onClick={() => setFeature('TICKER')} className={`px-4 py-2 rounded-lg text-sm font-semibold ${feature === 'TICKER' ? 'bg-blue-600 text-white' : 'bg-slate-500/10'}`}>Scrolling Text</button>
       <button onClick={() => setFeature('FRAMES')} className={`px-4 py-2 rounded-lg text-sm font-semibold ${feature === 'FRAMES' ? 'bg-blue-600 text-white' : 'bg-slate-500/10'}`}><Sparkles className="inline mr-2" size={15}/>Frames</button>
+      <button onClick={() => setFeature('CUBE')} className={`px-4 py-2 rounded-lg text-sm font-semibold ${feature === 'CUBE' ? 'bg-blue-600 text-white' : 'bg-slate-500/10'}`}>3D Rotating Cube</button>
     </div>
-    {feature === 'TICKER' ? <ScrollingTextView businessId={businessId} devices={devices} darkMode={darkMode}/> : <>
+    {feature === 'TICKER' ? <ScrollingTextView businessId={businessId} devices={devices} darkMode={darkMode}/> : feature === 'CUBE' ? <CubeEditor businessId={businessId} devices={devices} darkMode={darkMode}/> : <>
       <div className={`rounded-2xl border p-5 space-y-5 ${panel}`}>
         <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold">Frame broadcast</h2><p className="text-xs text-slate-500">Global frame is the master. Selected-device frames take over only while Global is OFF.</p></div><button onClick={() => update({ enabled: !frame.enabled })} className={`rounded-full px-5 py-2 text-sm font-bold ${frame.enabled ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200'}`}>{frame.enabled ? 'ON · ACTIVE' : 'OFF · PAUSED'}</button></div>
         <div className="flex gap-2"><button onClick={() => setScope('GLOBAL')} className={`px-4 py-2 rounded-lg text-sm font-semibold ${scope === 'GLOBAL' ? 'bg-blue-600 text-white' : 'bg-slate-500/10'}`}><Globe2 className="inline mr-2" size={15}/>Global</button><button onClick={() => setScope('DEVICES')} className={`px-4 py-2 rounded-lg text-sm font-semibold ${scope === 'DEVICES' ? 'bg-blue-600 text-white' : 'bg-slate-500/10'}`}><Monitor className="inline mr-2" size={15}/>Selected devices</button></div>
