@@ -24,7 +24,7 @@ export const ScrollingTextView: React.FC<{ businessId:string; devices:Device[]; 
  const [yPercent,setYPercent]=useState(90);
  const previewRef=React.useRef<HTMLDivElement>(null);
  const dragging=React.useRef(false);
- const moveTicker=(e:React.PointerEvent)=>{if(!dragging.current||!previewRef.current)return;const r=previewRef.current.getBoundingClientRect();setXPercent(Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100)));setYPercent(Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100));};
+ const moveTicker=(e:React.PointerEvent)=>{if(!dragging.current||!previewRef.current)return;const r=previewRef.current.getBoundingClientRect();setXPercent(Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100)));setYPercent(Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100)));};
  const [deviceIds,setDeviceIds]=useState<string[]>([]);
  const [saving,setSaving]=useState(false);
  const [notice,setNotice]=useState('');
