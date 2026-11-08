@@ -70,14 +70,24 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       // before a selected-device override is received.
       if (!globalLoaded || !deviceLoaded) return;
 
+      const globalIsActive =
+        globalConfig?.enabled &&
+        typeof globalConfig.message === 'string' &&
+        globalConfig.message.trim();
+
+      // GLOBAL is the master rule: while enabled, every display follows it,
+      // regardless of any saved device-specific configuration.
+      // Only when GLOBAL is OFF may a selected device use its own config.
       const selectedForThisDevice =
         Array.isArray(deviceConfig?.deviceIds) &&
         deviceConfig.deviceIds.includes(device.id);
 
-      // Selected-device configuration has precedence for targeted screens.
-      // Even when it is OFF, it suppresses the global ticker on that screen.
-      // All other screens use the global configuration as the fallback.
-      const activeConfig = selectedForThisDevice ? deviceConfig : globalConfig;
+      const activeConfig = globalIsActive
+        ? globalConfig
+        : selectedForThisDevice
+          ? deviceConfig
+          : null;
+
       setScrollingConfig(
         activeConfig?.enabled && typeof activeConfig.message === 'string' && activeConfig.message.trim()
           ? activeConfig
