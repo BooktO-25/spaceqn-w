@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   Bell,
   BellOff,
-  Rocket
+  Rocket,
+  MessageSquareText
 } from 'lucide-react';
 import { roleLabel } from '../lib/permissions';
 
@@ -63,6 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ? [{ id: 'announcement', label: 'Announcement', icon: Rocket }]
       : []),
     { id: 'team', label: 'Team', icon: Users },
+    { id: 'scrolling', label: 'Scrolling Text', icon: MessageSquareText },
   ];
 
   const studioItems = [
