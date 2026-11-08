@@ -434,15 +434,50 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           @keyframes sq-pulse{0%,100%{opacity:.5;box-shadow:inset 0 0 8px var(--sq-frame-color),0 0 8px var(--sq-frame-color)}50%{opacity:1;box-shadow:inset 0 0 28px var(--sq-frame-color),0 0 28px var(--sq-frame-color)}}
           @keyframes sq-corner{from{filter:brightness(.65)}to{filter:brightness(1.8)}}
         `}</style>
-        {scrollingConfig?.enabled && scrollingConfig.message && (
-          <div
-            className={`pointer-events-none absolute left-0 right-0 overflow-hidden whitespace-nowrap py-2 ${scrollingConfig.position === 'TOP' ? 'top-0' : scrollingConfig.position === 'MIDDLE' ? 'top-1/2 -translate-y-1/2' : 'bottom-0'}`}
-            style={{ zIndex: 2147483647, backgroundColor: scrollingConfig.backgroundColor || 'transparent', color: scrollingConfig.color || '#fff', fontFamily: scrollingConfig.fontFamily || 'Arial', fontSize: `${scrollingConfig.fontSize || 32}px`, lineHeight: 1.3 }}
-          >
-            <div style={{ display: 'inline-block', minWidth: 'max-content', paddingLeft: '100%', animation: `spaceq-shared-marquee ${Math.max(8, 120 - (scrollingConfig.speed || 24))}s linear infinite` }}>{scrollingConfig.message}</div>
-            <style>{'@keyframes spaceq-shared-marquee{from{transform:translateX(0)}to{transform:translateX(-100%)}}'}</style>
-          </div>
-        )}
+        {scrollingConfig?.enabled && scrollingConfig.message && (() => {
+          const direction = scrollingConfig.direction || 'RIGHT_TO_LEFT';
+          const vertical = direction === 'TOP_TO_BOTTOM' || direction === 'BOTTOM_TO_TOP';
+          const rotation = [0, 90, 180, 270].includes(Number(scrollingConfig.rotation)) ? Number(scrollingConfig.rotation) : 0;
+          const positionTop = scrollingConfig.position === 'TOP' ? '0%' : scrollingConfig.position === 'MIDDLE' ? '50%' : '100%';
+          const positionTransform = scrollingConfig.position === 'TOP' ? '0%' : scrollingConfig.position === 'MIDDLE' ? '-50%' : '-100%';
+          return (
+            <div
+              className="pointer-events-none absolute overflow-hidden whitespace-nowrap"
+              style={{
+                zIndex: 2147483647,
+                left: '50%',
+                top: positionTop,
+                width: vertical ? 'auto' : '100%',
+                height: vertical ? '100%' : 'auto',
+                maxWidth: vertical ? '100%' : undefined,
+                transform: `translate(-50%, ${positionTransform}) rotate(${rotation}deg)`,
+                transformOrigin: 'center',
+                backgroundColor: scrollingConfig.backgroundColor || 'transparent',
+                color: scrollingConfig.color || '#fff',
+                fontFamily: scrollingConfig.fontFamily || 'Arial',
+                fontSize: `${scrollingConfig.fontSize || 32}px`,
+                lineHeight: 1.3,
+                padding: '8px 0',
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  minWidth: vertical ? undefined : 'max-content',
+                  whiteSpace: 'nowrap',
+                  paddingLeft: direction === 'RIGHT_TO_LEFT' ? '100%' : 0,
+                  animation: `spaceq-scroll-${direction.toLowerCase()} ${Math.max(8, 120 - (scrollingConfig.speed || 24))}s linear infinite`,
+                }}
+              >{scrollingConfig.message}</div>
+              <style>{`
+                @keyframes spaceq-scroll-right_to_left{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+                @keyframes spaceq-scroll-left_to_right{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+                @keyframes spaceq-scroll-top_to_bottom{from{transform:translateY(-100%)}to{transform:translateY(100vh)}}
+                @keyframes spaceq-scroll-bottom_to_top{from{transform:translateY(100vh)}to{transform:translateY(-100%)}}
+              `}</style>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Bottom Status Ticker — dashboard preview only */}
