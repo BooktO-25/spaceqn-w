@@ -27,7 +27,7 @@ import { PlaylistBuilderView } from './components/PlaylistBuilderView';
 import { PlayerView } from './components/PlayerView';
 import { TeamView } from './components/TeamView';
 import { AnnouncementView } from './components/AnnouncementView';
-import { ScrollingTextView } from './components/ScrollingTextView';
+import { FeatureEditorView } from './components/FeatureEditorView';
 import { SuperAdminConsole } from './components/SuperAdminConsole';
 import { ShieldOff } from 'lucide-react';
 import { useOfflineAlerts, notificationsGranted, requestNotificationPermission } from './lib/useOfflineAlerts';
@@ -691,7 +691,7 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
           )}
 
           {activeTab === 'scrolling' && selectedBusiness && (
-            <ScrollingTextView businessId={selectedBusiness.id} devices={bizDevices} darkMode={darkMode} />
+            <FeatureEditorView businessId={selectedBusiness.id} devices={bizDevices} darkMode={darkMode} />
           )}
 
           {activeTab === 'team' && (
