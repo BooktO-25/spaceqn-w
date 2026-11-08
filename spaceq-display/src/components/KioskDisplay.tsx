@@ -451,10 +451,23 @@ export const KioskDisplay: React.FC = () => {
           onPlaybackStart={handlePlaybackStart}
         />
         {scrollingConfig?.enabled && scrollingConfig.message && (
-          <div className={`pointer-events-none absolute left-0 right-0 z-[60] overflow-hidden whitespace-nowrap py-2 ${scrollingConfig.position === 'TOP' ? 'top-0' : scrollingConfig.position === 'MIDDLE' ? 'top-1/2 -translate-y-1/2' : 'bottom-0'}`}
-            style={{ backgroundColor: scrollingConfig.backgroundColor || 'transparent', color: scrollingConfig.color || '#fff', fontFamily: scrollingConfig.fontFamily || 'Arial', fontSize: `${scrollingConfig.fontSize || 32}px` }}>
-            <div style={{ display: 'inline-block', paddingLeft: '100%', animation: `spaceq-kiosk-marquee ${Math.max(8, 120 - (scrollingConfig.speed || 24))}s linear infinite` }}>{scrollingConfig.message}</div>
-            <style>{'@keyframes spaceq-kiosk-marquee{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}'}</style>
+          <div
+            className={`pointer-events-none fixed left-0 right-0 overflow-hidden whitespace-nowrap py-2 ${scrollingConfig.position === 'TOP' ? 'top-0' : scrollingConfig.position === 'MIDDLE' ? 'top-1/2 -translate-y-1/2' : 'bottom-0'}`}
+            style={{
+              zIndex: 2147483647,
+              backgroundColor: scrollingConfig.backgroundColor || 'transparent',
+              color: scrollingConfig.color || '#fff',
+              fontFamily: scrollingConfig.fontFamily || 'Arial',
+              fontSize: `${scrollingConfig.fontSize || 32}px`,
+              lineHeight: 1.3,
+              visibility: 'visible',
+              opacity: 1,
+            }}
+          >
+            <div style={{ display: 'inline-block', minWidth: 'max-content', paddingLeft: '100%', animation: `spaceq-kiosk-marquee ${Math.max(8, 120 - (scrollingConfig.speed || 24))}s linear infinite` }}>
+              {scrollingConfig.message}
+            </div>
+            <style>{'@keyframes spaceq-kiosk-marquee{from{transform:translateX(0)}to{transform:translateX(-100%)}}'}</style>
           </div>
         )}
         {/* Remote sync is intentionally non-visual: never interrupt playback. */}
