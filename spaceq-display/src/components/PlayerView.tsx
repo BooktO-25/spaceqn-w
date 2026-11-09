@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Device, Playlist, ContentItem } from '../types';
 import { getLayoutTemplate } from '../data/layoutTemplates';
 import { PlayerPane } from './PlayerPane';
+import { QrDisplayOverlay } from './QrDisplayOverlay';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import {
@@ -52,6 +53,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [frameConfig, setFrameConfig] = useState<any>(null);
   const [cubeConfig, setCubeConfig] = useState<any>(null);
   const [mascotConfig, setMascotConfig] = useState<any>(null);
+  const [qrConfig, setQrConfig] = useState<any>(null);
 
   // Shared ticker subscription: this component powers both the dashboard
   // live preview and the physical kiosk display.
@@ -62,6 +64,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     setFrameConfig(null);
     setCubeConfig(null);
     setMascotConfig(null);
+    setQrConfig(null);
     if (!device.businessId) return;
 
     const globalRef = doc(db, 'scrollingMessages', device.businessId);
@@ -123,6 +126,16 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       const globalMascot = globalConfig?.mascot;
       const activeMascot = globalMascot?.enabled ? globalMascot : selectedMascot;
       setMascotConfig(activeMascot?.enabled ? activeMascot : null);
+
+      // QR information campaigns use their own device assignment list.
+      // Global QR stays the master; otherwise a device-selected QR can run.
+      const selectedQr = Array.isArray(deviceConfig?.qr?.deviceIds)
+        && deviceConfig.qr.deviceIds.includes(device.id)
+        ? deviceConfig.qr : null;
+      const globalQr = globalConfig?.qr;
+      const useDeviceQr = !globalQr?.enabled && !!selectedQr?.enabled;
+      const activeQr = globalQr?.enabled ? globalQr : selectedQr;
+      setQrConfig(activeQr?.enabled ? { ...activeQr, deviceScope: useDeviceQr } : null);
     };
 
     const stopGlobal = onSnapshot(
@@ -554,6 +567,17 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
             </div>
           );
         })()}
+        {qrConfig?.enabled && (
+          <QrDisplayOverlay
+            config={qrConfig}
+            url={(() => {
+              const url = new URL('/info', window.location.origin);
+              url.searchParams.set('businessId', device.businessId || '');
+              if (qrConfig.deviceScope) url.searchParams.set('deviceId', device.id);
+              return url.toString();
+            })()}
+          />
+        )}
       </div>
 
       {/* Bottom Status Ticker — dashboard preview only */}

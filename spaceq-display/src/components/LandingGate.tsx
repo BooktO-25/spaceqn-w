@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
-import { Tv, UploadCloud, LayoutGrid, ShieldCheck } from 'lucide-react';
+import { Tv, UploadCloud, LayoutGrid, ShieldCheck, FileText } from 'lucide-react';
 
 export const LandingGate: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
   const { openAuthModal } = useAuth();
@@ -10,6 +10,13 @@ export const LandingGate: React.FC<{ darkMode: boolean }> = ({ darkMode }) => {
     <div className={`min-h-screen flex flex-col items-center justify-center px-6 py-16 ${
       darkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#F8F9FA] text-[#111827]'
     }`}>
+      <header className="absolute left-0 right-0 top-0 flex items-center justify-between border-b border-slate-800/80 px-5 py-4 lg:px-8">
+        <span className="text-sm font-extrabold tracking-wide">SPACEQ DISPLAY</span>
+        <a href="/rate-card" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 transition-colors hover:bg-slate-800">
+          <FileText className="h-4 w-4" /> Advertising Rate Card
+        </a>
+      </header>
+
       <div className="w-full max-w-md text-center space-y-6">
         <div className="w-14 h-14 rounded-2xl bg-rose-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-rose-600/30">
           <Tv className="w-7 h-7" />
