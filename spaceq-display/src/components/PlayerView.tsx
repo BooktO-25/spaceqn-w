@@ -59,6 +59,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
     // Clear the previous device's ticker immediately while the new device's
     // global and selected-device settings are being loaded.
     setScrollingConfig(null);
+    setFrameConfig(null);
     setCubeConfig(null);
     setMascotConfig(null);
     if (!device.businessId) return;
@@ -99,21 +100,27 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           : null
       );
 
-      // Frames follow the same master/fallback hierarchy as scrolling text:
-      // an enabled global frame controls every display; only when it is OFF
-      // can a selected-device frame take over.
+      // Each feature stores its selected-device IDs inside its own config.
+      // Keep its targeting independent so a ticker selection cannot accidentally
+      // enable a frame, cube, or mascot on the same device.
+      const selectedFrame = Array.isArray(deviceConfig?.frame?.deviceIds)
+        && deviceConfig.frame.deviceIds.includes(device.id)
+        ? deviceConfig.frame : null;
       const globalFrame = globalConfig?.frame;
-      const selectedFrame = selectedForThisDevice ? deviceConfig?.frame : null;
       const activeFrame = globalFrame?.enabled ? globalFrame : selectedFrame;
       setFrameConfig(activeFrame?.enabled ? activeFrame : null);
 
-      // Cube follows the same Global-first, selected-device-fallback rule.
+      const selectedCube = Array.isArray(deviceConfig?.cube?.deviceIds)
+        && deviceConfig.cube.deviceIds.includes(device.id)
+        ? deviceConfig.cube : null;
       const globalCube = globalConfig?.cube;
-      const selectedCube = selectedForThisDevice ? deviceConfig?.cube : null;
       const activeCube = globalCube?.enabled ? globalCube : selectedCube;
       setCubeConfig(activeCube?.enabled ? activeCube : null);
+
+      const selectedMascot = Array.isArray(deviceConfig?.mascot?.deviceIds)
+        && deviceConfig.mascot.deviceIds.includes(device.id)
+        ? deviceConfig.mascot : null;
       const globalMascot = globalConfig?.mascot;
-      const selectedMascot = selectedForThisDevice ? deviceConfig?.mascot : null;
       const activeMascot = globalMascot?.enabled ? globalMascot : selectedMascot;
       setMascotConfig(activeMascot?.enabled ? activeMascot : null);
     };
