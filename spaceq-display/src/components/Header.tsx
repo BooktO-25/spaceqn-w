@@ -11,7 +11,8 @@ import {
   User,
   ShieldCheck,
   Database,
-  Menu
+  Menu,
+  FileText
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -164,6 +165,15 @@ export const Header: React.FC<HeaderProps> = ({
             {userProfile?.role === 'SUPER_ADMIN' ? 'Admin' : 'Owner'}
           </span>
         </button>
+
+        {/* Public rate card — available to signed-in and public visitors */}
+        <a
+          href="/rate-card"
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${darkMode ? 'border-slate-700 text-slate-200 hover:bg-slate-800' : 'border-gray-200 text-gray-700 hover:bg-gray-100'}`}
+        >
+          <FileText className="h-3.5 w-3.5" />
+          <span>Rate Card</span>
+        </a>
 
         {/* Quick Launch Player */}
         <button
