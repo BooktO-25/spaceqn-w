@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import QRCode from 'qrcode';
 import { db } from '../lib/firebase';
@@ -79,6 +79,8 @@ export const QrEditor: React.FC<{ businessId: string; devices: Device[]; darkMod
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const previewStageRef = useRef<HTMLDivElement>(null);
 
   const panel = darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-gray-200 text-gray-900';
 
@@ -160,6 +162,28 @@ export const QrEditor: React.FC<{ businessId: string; devices: Device[]; darkMod
 
   const fieldClass = `mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none ${darkMode ? 'border-slate-700 bg-slate-950 text-slate-100' : 'border-gray-200 bg-white text-gray-900'}`;
   const selected = (id: string) => qr.deviceIds.includes(id);
+
+  const handleQrPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsDragging(true);
+  };
+
+  const handleQrPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || !previewStageRef.current) return;
+    const bounds = previewStageRef.current.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) return;
+    const x = Math.round(((event.clientX - bounds.left) / bounds.width) * 100);
+    const y = Math.round(((event.clientY - bounds.top) / bounds.height) * 100);
+    update({
+      x: Math.max(5, Math.min(95, x)),
+      y: Math.max(5, Math.min(95, y)),
+    });
+  };
+
+  const stopQrDragging = () => setIsDragging(false);
 
   return (
     <div className="space-y-5">
@@ -252,11 +276,49 @@ export const QrEditor: React.FC<{ businessId: string; devices: Device[]; darkMod
         <div className={`h-fit rounded-2xl border p-5 ${panel}`}>
           <h3 className="font-bold">QR live preview</h3>
           <p className="mt-1 text-xs text-slate-500">This sample points to the public information page.</p>
-          <div className="mt-5 flex min-h-[330px] items-center justify-center rounded-xl bg-slate-950 p-5">
-            {previewUrl ? <div className="max-w-[230px] rounded-2xl p-4 text-center shadow-2xl" style={{ backgroundColor: qr.background }}>
-              <img src={previewUrl} alt="Preview of the public information QR code" className="mx-auto h-auto w-full"/>
-              {qr.showLabel && <p className="mt-3 text-xs font-bold" style={{ color: qr.foreground }}>{qr.label}</p>}
-            </div> : <Loader2 className="animate-spin text-slate-500"/>}
+          <div
+            ref={previewStageRef}
+            className="relative mt-5 aspect-video w-full overflow-hidden rounded-xl border border-slate-700 bg-slate-950"
+            style={{ touchAction: 'none' }}
+          >
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] font-semibold tracking-[0.25em] text-slate-700">
+              DISPLAY PREVIEW
+            </div>
+            {previewUrl ? (
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Drag QR code to reposition it"
+                aria-roledescription="draggable"
+                onPointerDown={handleQrPointerDown}
+                onPointerMove={handleQrPointerMove}
+                onPointerUp={stopQrDragging}
+                onPointerCancel={stopQrDragging}
+                onLostPointerCapture={stopQrDragging}
+                onDragStart={event => event.preventDefault()}
+                className={`absolute z-10 flex max-w-[42%] flex-col items-center rounded-lg p-2 text-center shadow-2xl select-none touch-none ${isDragging ? 'cursor-grabbing ring-2 ring-teal-400' : 'cursor-grab hover:ring-2 hover:ring-teal-400/70'}`}
+                style={{
+                  left: `${qr.x}%`,
+                  top: `${qr.y}%`,
+                  width: `${Math.max(70, Math.min(140, qr.size * 0.55))}px`,
+                  transform: 'translate(-50%, -50%)',
+                  backgroundColor: qr.background,
+                  color: qr.foreground,
+                }}
+              >
+                <img
+                  src={previewUrl}
+                  alt="Preview of the public information QR code"
+                  draggable={false}
+                  className="pointer-events-none block h-auto w-full"
+                />
+                {qr.showLabel && <p className="pointer-events-none mt-1.5 w-full break-words text-[9px] font-bold leading-tight">{qr.label}</p>}
+              </div>
+            ) : <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin text-slate-500"/></div>}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <p className="text-slate-500">{isDragging ? 'Release to set QR position' : 'Drag the QR code inside the preview to move it.'}</p>
+            <p className="font-semibold tabular-nums text-teal-500">X: {qr.x}% · Y: {qr.y}%</p>
           </div>
           <a href={infoUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-teal-500 hover:text-teal-400">
             Open public information page <ExternalLink size={13}/>
