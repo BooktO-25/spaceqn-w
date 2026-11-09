@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Device, Playlist, ContentItem } from '../types';
 import { getLayoutTemplate } from '../data/layoutTemplates';
 import { PlayerPane } from './PlayerPane';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import {
   Wifi,
   WifiOff,
@@ -46,6 +48,96 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [heartbeatCounter, setHeartbeatCounter] = useState(30);
   const [orientation, setOrientation] = useState<'LANDSCAPE' | 'PORTRAIT'>(device.orientation || 'LANDSCAPE');
   const [primaryStatus, setPrimaryStatus] = useState({ index: 0, total: 1, title: 'System Idle', durationSeconds: 10 });
+  const [scrollingConfig, setScrollingConfig] = useState<any>(null);
+  const [frameConfig, setFrameConfig] = useState<any>(null);
+  const [cubeConfig, setCubeConfig] = useState<any>(null);
+  const [mascotConfig, setMascotConfig] = useState<any>(null);
+
+  // Shared ticker subscription: this component powers both the dashboard
+  // live preview and the physical kiosk display.
+  useEffect(() => {
+    // Clear the previous device's ticker immediately while the new device's
+    // global and selected-device settings are being loaded.
+    setScrollingConfig(null);
+    setFrameConfig(null);
+    setCubeConfig(null);
+    setMascotConfig(null);
+    if (!device.businessId) return;
+
+    const globalRef = doc(db, 'scrollingMessages', device.businessId);
+    const deviceRef = doc(db, 'scrollingMessages', `${device.businessId}_devices`);
+    let globalConfig: any = null;
+    let deviceConfig: any = null;
+    let globalLoaded = false;
+    let deviceLoaded = false;
+
+    const publish = () => {
+      // Wait for both documents so the global ticker cannot briefly flash
+      // before a selected-device override is received.
+      if (!globalLoaded || !deviceLoaded) return;
+
+      const globalIsActive =
+        globalConfig?.enabled &&
+        typeof globalConfig.message === 'string' &&
+        globalConfig.message.trim();
+
+      // GLOBAL is the master rule: while enabled, every display follows it,
+      // regardless of any saved device-specific configuration.
+      // Only when GLOBAL is OFF may a selected device use its own config.
+      const selectedForThisDevice =
+        Array.isArray(deviceConfig?.deviceIds) &&
+        deviceConfig.deviceIds.includes(device.id);
+
+      const activeConfig = globalIsActive
+        ? globalConfig
+        : selectedForThisDevice
+          ? deviceConfig
+          : null;
+
+      setScrollingConfig(
+        activeConfig?.enabled && typeof activeConfig.message === 'string' && activeConfig.message.trim()
+          ? activeConfig
+          : null
+      );
+
+      // Each feature stores its selected-device IDs inside its own config.
+      // Keep its targeting independent so a ticker selection cannot accidentally
+      // enable a frame, cube, or mascot on the same device.
+      const selectedFrame = Array.isArray(deviceConfig?.frame?.deviceIds)
+        && deviceConfig.frame.deviceIds.includes(device.id)
+        ? deviceConfig.frame : null;
+      const globalFrame = globalConfig?.frame;
+      const activeFrame = globalFrame?.enabled ? globalFrame : selectedFrame;
+      setFrameConfig(activeFrame?.enabled ? activeFrame : null);
+
+      const selectedCube = Array.isArray(deviceConfig?.cube?.deviceIds)
+        && deviceConfig.cube.deviceIds.includes(device.id)
+        ? deviceConfig.cube : null;
+      const globalCube = globalConfig?.cube;
+      const activeCube = globalCube?.enabled ? globalCube : selectedCube;
+      setCubeConfig(activeCube?.enabled ? activeCube : null);
+
+      const selectedMascot = Array.isArray(deviceConfig?.mascot?.deviceIds)
+        && deviceConfig.mascot.deviceIds.includes(device.id)
+        ? deviceConfig.mascot : null;
+      const globalMascot = globalConfig?.mascot;
+      const activeMascot = globalMascot?.enabled ? globalMascot : selectedMascot;
+      setMascotConfig(activeMascot?.enabled ? activeMascot : null);
+    };
+
+    const stopGlobal = onSnapshot(
+      globalRef,
+      snap => { globalConfig = snap.exists() ? snap.data() : null; globalLoaded = true; publish(); },
+      error => { console.warn('Global scrolling message listener:', error); globalLoaded = true; publish(); }
+    );
+    const stopDevice = onSnapshot(
+      deviceRef,
+      snap => { deviceConfig = snap.exists() ? snap.data() : null; deviceLoaded = true; publish(); },
+      error => { console.warn('Device scrolling message listener:', error); deviceLoaded = true; publish(); }
+    );
+
+    return () => { stopGlobal(); stopDevice(); };
+  }, [device.businessId, device.id]);
 
   // Keep the real kiosk in sync when the dashboard changes the physical
   // orientation. The preview toggle below can still temporarily switch the
@@ -337,6 +429,131 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           )
         )}
         </div>
+        {frameConfig?.enabled && (
+          <>
+            {frameConfig.mode === 'UPLOAD' && frameConfig.imageUrl && (
+              <img src={frameConfig.imageUrl} alt="" className="pointer-events-none absolute inset-0 w-full h-full object-fill" style={{ zIndex: 2147483646 }} />
+            )}
+            <div
+              className={`sq-frame sq-frame--${frameConfig.template || 'aurora'} ${frameConfig.colorMode === 'RGB' ? 'sq-frame--rgb' : ''} ${frameConfig.colorMode === 'PATTERN' ? 'sq-frame--pattern' : ''}`}
+              style={{ zIndex: 2147483647, '--sq-frame-color': frameConfig.color || '#00B3A4' } as React.CSSProperties}
+            />
+          </>
+        )}
+        <style>{`
+          .sq-frame{position:absolute;inset:0;pointer-events:none;--sq-frame-color:#00B3A4}
+          .sq-frame:before{content:'';position:absolute;pointer-events:none}
+          .sq-frame--aurora:before{inset:0;border:10px solid transparent;border-image:linear-gradient(120deg,#00e5ff,#7c3aed,#ff2d95,#facc15,#00e5ff) 1;filter:drop-shadow(0 0 8px #00e5ff);animation:sq-hue 4s linear infinite}
+          .sq-frame--orbit:before{inset:0;border:8px dashed #00e5ff;box-shadow:inset 0 0 12px #00e5ff,0 0 12px #00e5ff;animation:sq-orbit 5s linear infinite}
+          .sq-frame--pulse:before{inset:5px;border:8px solid var(--sq-frame-color);box-shadow:inset 0 0 20px var(--sq-frame-color),0 0 20px var(--sq-frame-color);animation:sq-pulse 2s ease-in-out infinite}
+          .sq-frame--corner:before{inset:0;background:linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left top/48px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left top/5px 48px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right top/48px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right top/5px 48px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left bottom/48px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) left bottom/5px 48px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right bottom/48px 5px no-repeat,linear-gradient(var(--sq-frame-color),var(--sq-frame-color)) right bottom/5px 48px no-repeat;animation:sq-corner 2s ease-in-out infinite alternate}
+          .sq-frame--luxury:before{inset:5px;border:3px double #d6ad55;box-shadow:inset 0 0 0 3px #5b421c,0 0 12px #d6ad55}
+          .sq-frame--rgb{animation:sq-hue 3s linear infinite}
+          .sq-frame--pattern:before{inset:0;border:10px solid transparent;border-image:repeating-linear-gradient(45deg,#f59e0b 0 8px,#7c3aed 8px 16px,#06b6d4 16px 24px) 1}
+          @keyframes sq-hue{to{filter:hue-rotate(360deg)}}
+          @keyframes sq-orbit{to{filter:hue-rotate(360deg)}}
+          @keyframes sq-pulse{0%,100%{opacity:.5;box-shadow:inset 0 0 8px var(--sq-frame-color),0 0 8px var(--sq-frame-color)}50%{opacity:1;box-shadow:inset 0 0 28px var(--sq-frame-color),0 0 28px var(--sq-frame-color)}}
+          @keyframes sq-corner{from{filter:brightness(.65)}to{filter:brightness(1.8)}}
+        `}</style>
+        {cubeConfig?.enabled && (() => {
+          const size = Math.max(40, Math.min(500, Number(cubeConfig.size) || 140));
+          const width = Math.max(30, Math.min(800, Number(cubeConfig.width) || size));
+          const height = Math.max(30, Math.min(800, Number(cubeConfig.height) || size));
+          const depth = Math.min(width, height);
+          const renderMode = cubeConfig.renderMode || '3D';
+          const screenRotation = [0,90,180,270].includes(Number(cubeConfig.screenRotation)) ? Number(cubeConfig.screenRotation) : 0;
+          const faces = cubeConfig.faces || {};
+          const names = ['front','right','back','left','top','bottom'];
+          const half = size / 2;
+          const faceTransforms: Record<string,string> = {
+            front: `translateZ(${depth/2}px)`,
+            right: `rotateY(90deg) translateZ(${width/2}px)`,
+            back: `rotateY(180deg) translateZ(${depth/2}px)`,
+            left: `rotateY(-90deg) translateZ(${width/2}px)`,
+            top: `rotateX(90deg) translateZ(${height/2}px)`,
+            bottom: `rotateX(-90deg) translateZ(${height/2}px)`,
+          };
+          const mode = cubeConfig.mode || 'CONTINUOUS';
+          const axis = cubeConfig.axis || 'Y';
+          const direction = cubeConfig.direction === 'ANTICLOCKWISE' ? 'reverse' : 'normal';
+          const speed = Math.max(2, 20 - (Number(cubeConfig.speed) || 12));
+          const duration = mode === 'FACE_BY_FACE' ? Math.max(1, Number(cubeConfig.pauseSeconds) || 2) * 6 : speed;
+          const animationName = renderMode === '3D' && mode === 'CONTINUOUS' ? (axis === 'X' ? 'sq-cube-spin-x' : axis === 'BOTH' ? 'sq-cube-spin-both' : 'sq-cube-spin-y') : renderMode === '3D' && mode === 'FACE_BY_FACE' ? 'sq-cube-steps' : undefined;
+          return (
+            <div className="pointer-events-none absolute" style={{ zIndex: 2147483647, left: `${cubeConfig.x ?? 88}%`, top: `${cubeConfig.y ?? 16}%`, width: renderMode === '2D' ? width : width, height, transform: `translate(-50%,-50%) rotate(${screenRotation}deg)`, perspective: 1000 }}>
+              <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transform: renderMode === '2D' ? 'none' : mode === 'MANUAL' ? `rotateX(${Number(cubeConfig.angleX) || 0}deg) rotateY(${Number(cubeConfig.angleY) || 0}deg)` : 'rotateX(-18deg) rotateY(-25deg)', animation: animationName ? `${animationName} ${duration}s linear infinite` : undefined, animationDirection: direction }}>
+                {(renderMode === '2D' ? ['front'] : names).map(name => {
+                  const face = faces[name] || {};
+                  const faceDimensions:Record<string,React.CSSProperties>={front:{width,height},back:{width,height},right:{width:depth,height,left:(width-depth)/2},left:{width:depth,height,left:(width-depth)/2},top:{width,height:depth,top:(height-depth)/2},bottom:{width,height:depth,top:(height-depth)/2}};
+                  return <div key={name} style={{ position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxSizing: 'border-box', backfaceVisibility: 'hidden', ...faceDimensions[name], transform: renderMode === '2D' ? 'none' : faceTransforms[name], background: face.background || '#B5121B', color: face.color || '#FFFFFF', border: '1px solid rgba(255,255,255,.55)', fontSize: Math.max(10, size * .12), fontWeight: 800, textAlign: 'center', padding: 6 }}>
+                    {face.type === 'IMAGE' && face.imageUrl ? <img src={face.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ overflowWrap: 'anywhere' }}>{face.text || 'YOUR AD HERE'}</span>}
+                  </div>;
+                })}
+              </div>
+              <style>{`@keyframes sq-cube-spin-y{from{transform:rotateX(-18deg) rotateY(0)}to{transform:rotateX(-18deg) rotateY(360deg)}}@keyframes sq-cube-spin-x{from{transform:rotateX(0) rotateY(-18deg)}to{transform:rotateX(360deg) rotateY(-18deg)}}@keyframes sq-cube-spin-both{from{transform:rotateX(0) rotateY(0)}to{transform:rotateX(360deg) rotateY(360deg)}}@keyframes sq-cube-steps{0%,12%{transform:rotateX(-18deg) rotateY(0)}16.66%,29%{transform:rotateX(-18deg) rotateY(-60deg)}33.33%,45%{transform:rotateX(-18deg) rotateY(-120deg)}50%,62%{transform:rotateX(-18deg) rotateY(-180deg)}66.66%,79%{transform:rotateX(-18deg) rotateY(-240deg)}83.33%,95%{transform:rotateX(-18deg) rotateY(-300deg)}100%{transform:rotateX(-18deg) rotateY(-360deg)}}`}</style>
+            </div>
+          );
+        })()}
+        {mascotConfig?.enabled && (() => {
+          const mascotEmojis:Record<string,string>={buddy:'🧑🏻‍💼',chef:'👨🏻‍🍳',robot:'🤖',cat:'🐱',fox:'🦊',bear:'🐻',astronaut:'🧑🏻‍🚀',mascot:'⭐'};
+          const animation=String(mascotConfig.animation||'BOUNCE').toLowerCase();
+          const animationName=animation==='idle'?'none':`sq-mascot-${animation}`;
+          const size=Math.max(60,Math.min(420,Number(mascotConfig.size)||190));
+          return <div className="pointer-events-none absolute" style={{zIndex:2147483646,left:`${mascotConfig.x??82}%`,top:`${mascotConfig.y??68}%`,width:size,height:size,transform:'translate(-50%,-50%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+            {mascotConfig.showBubble!==false&&mascotConfig.message&&<div style={{maxWidth:size*1.8,marginBottom:8,borderRadius:18,background:'#fff',color:'#172033',padding:'9px 13px',fontSize:Math.max(12,size*.085),fontWeight:800,lineHeight:1.25,textAlign:'center',boxShadow:'0 5px 18px rgba(0,0,0,.28)'}}>{mascotConfig.message}</div>}
+            <div style={{width:size*.82,height:size*.82,display:'flex',alignItems:'center',justifyContent:'center',animation:animationName==='none'?'none':`${animationName} 2s ease-in-out infinite`,transformOrigin:'50% 85%'}}>
+              {mascotConfig.imageUrl?<img src={mascotConfig.imageUrl} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>:<span style={{fontSize:size*.68,lineHeight:1}}>{mascotEmojis[mascotConfig.character]||'🧑🏻‍💼'}</span>}
+            </div>
+            {mascotConfig.name&&<span style={{marginTop:2,color:'#fff',fontSize:Math.max(10,size*.07),fontWeight:800,textShadow:'0 2px 5px #000'}}>{mascotConfig.name}</span>}
+            <style>{`@keyframes sq-mascot-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}@keyframes sq-mascot-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes sq-mascot-wave{0%,100%{transform:rotate(0)}25%{transform:rotate(-9deg)}75%{transform:rotate(9deg)}}@keyframes sq-mascot-dance{0%,100%{transform:rotate(0) translateY(0)}25%{transform:rotate(-8deg) translateY(-8px)}75%{transform:rotate(8deg) translateY(-8px)}}`}</style>
+          </div>;
+        })()}
+        {scrollingConfig?.enabled && scrollingConfig.message && (() => {
+          const direction = scrollingConfig.direction || 'RIGHT_TO_LEFT';
+          const vertical = direction === 'TOP_TO_BOTTOM' || direction === 'BOTTOM_TO_TOP';
+          const rotation = [0, 90, 180, 270].includes(Number(scrollingConfig.rotation)) ? Number(scrollingConfig.rotation) : 0;
+          const positionTop = scrollingConfig.position === 'TOP' ? '0%' : scrollingConfig.position === 'MIDDLE' ? '50%' : '100%';
+          const positionTransform = scrollingConfig.position === 'TOP' ? '0%' : scrollingConfig.position === 'MIDDLE' ? '-50%' : '-100%';
+          return (
+            <div
+              className="pointer-events-none absolute overflow-hidden whitespace-nowrap"
+              style={{
+                zIndex: 2147483647,
+                left: `${scrollingConfig.xPercent ?? 50}%`,
+                top: `${scrollingConfig.yPercent ?? (scrollingConfig.position === 'TOP' ? 10 : scrollingConfig.position === 'MIDDLE' ? 50 : 90)}%`,
+                width: rotation === 90 || rotation === 270 ? `${stageSize.height}px` : '100%',
+                height: `${Math.ceil((scrollingConfig.fontSize || 32) * 1.1) + Math.max(2, Math.round((scrollingConfig.fontSize || 32) * 0.12)) * 2}px`,
+                transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+                transformOrigin: 'center',
+                boxSizing: 'border-box',
+                backgroundColor: scrollingConfig.backgroundTransparent ? 'transparent' : (scrollingConfig.backgroundColor || 'transparent'),
+                color: scrollingConfig.color || '#fff',
+                fontFamily: scrollingConfig.fontFamily || 'Arial',
+                fontSize: `${scrollingConfig.fontSize || 32}px`,
+                lineHeight: 1.1,
+                padding: `${Math.max(2, Math.round((scrollingConfig.fontSize || 32) * 0.12))}px 0`,
+                textShadow: 'none',
+                boxShadow: 'none',
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-block',
+                  minWidth: vertical ? undefined : 'max-content',
+                  whiteSpace: 'nowrap',
+                  paddingLeft: direction === 'RIGHT_TO_LEFT' ? '100%' : 0,
+                  animation: `spaceq-scroll-${direction.toLowerCase()} ${Math.max(8, 120 - (scrollingConfig.speed || 24))}s linear infinite`,
+                }}
+              >{scrollingConfig.message}</div>
+              <style>{`
+                @keyframes spaceq-scroll-right_to_left{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+                @keyframes spaceq-scroll-left_to_right{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+                @keyframes spaceq-scroll-top_to_bottom{from{transform:translateY(-100%)}to{transform:translateY(100vh)}}
+                @keyframes spaceq-scroll-bottom_to_top{from{transform:translateY(100vh)}to{transform:translateY(-100%)}}
+              `}</style>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Bottom Status Ticker — dashboard preview only */}

@@ -27,6 +27,7 @@ import { PlaylistBuilderView } from './components/PlaylistBuilderView';
 import { PlayerView } from './components/PlayerView';
 import { TeamView } from './components/TeamView';
 import { AnnouncementView } from './components/AnnouncementView';
+import { FeatureEditorView } from './components/FeatureEditorView';
 import { SuperAdminConsole } from './components/SuperAdminConsole';
 import { ShieldOff } from 'lucide-react';
 import { useOfflineAlerts, notificationsGranted, requestNotificationPermission } from './lib/useOfflineAlerts';
@@ -687,6 +688,10 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
               onCreatePlaylist={handleCreatePlaylist}
               darkMode={darkMode}
             />
+          )}
+
+          {activeTab === 'scrolling' && selectedBusiness && (
+            <FeatureEditorView businessId={selectedBusiness.id} devices={bizDevices} darkMode={darkMode} />
           )}
 
           {activeTab === 'team' && (

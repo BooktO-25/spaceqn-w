@@ -401,6 +401,8 @@ export const KioskDisplay: React.FC = () => {
       .catch(err => console.warn('QR generation failed:', err));
   }, [device?.pairingCode, device?.businessId]);
 
+
+
   // --- Render states ---
 
   if (!deviceId || device === undefined) {
@@ -425,6 +427,7 @@ export const KioskDisplay: React.FC = () => {
           kioskMode
           onPlaybackStart={handlePlaybackStart}
         />
+
         {/* Remote sync is intentionally non-visual: never interrupt playback. */}
         <FullscreenTapButton />
       </div>
