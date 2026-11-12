@@ -30,6 +30,7 @@ import { AnnouncementView } from './components/AnnouncementView';
 import { FeatureEditorView } from './components/FeatureEditorView';
 import { CampaignHubView } from './components/CampaignHubView';
 import { CampaignDeploymentView } from './components/CampaignDeploymentView';
+import { PublicCampaignReport } from './components/PublicCampaignReport';
 import { DefaultLayerEditor } from './components/DefaultLayerEditor';
 import { SuperAdminConsole } from './components/SuperAdminConsole';
 import { ShieldOff } from 'lucide-react';
@@ -752,6 +753,8 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
 }
 
 export default function App({ isAdminEntrance = false }: { isAdminEntrance?: boolean }) {
+  const reportParams = new URLSearchParams(window.location.search);
+  if (reportParams.has('campaignReport')) return <PublicCampaignReport campaignId={reportParams.get('campaignReport') || ''} token={reportParams.get('token') || ''} />;
   return (
     <AuthProvider>
       <MainApplication isAdminEntrance={isAdminEntrance} />
