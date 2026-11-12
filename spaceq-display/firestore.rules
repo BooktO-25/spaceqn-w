@@ -238,6 +238,34 @@ service cloud.firestore {
           || (canManageContent() && getUserBusinessId() == resource.data.businessId));
     }
 
+
+    // Advertisers and campaigns are private to each business tenant.
+    match /advertisers/{advertiserId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
+      allow create: if isSignedIn() && request.resource.data.businessId is string
+        && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId)
+          || (canManageTeam() && getUserBusinessId() == request.resource.data.businessId));
+      allow update: if isSignedIn()
+        && request.resource.data.businessId == resource.data.businessId
+        && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId)
+          || (canManageTeam() && getUserBusinessId() == resource.data.businessId));
+      allow delete: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId)
+        || (canManageTeam() && getUserBusinessId() == resource.data.businessId));
+    }
+
+    match /campaigns/{campaignId} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
+      allow create: if isSignedIn() && request.resource.data.businessId is string
+        && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId)
+          || (canManageContent() && getUserBusinessId() == request.resource.data.businessId));
+      allow update: if isSignedIn()
+        && request.resource.data.businessId == resource.data.businessId
+        && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId)
+          || (canManageContent() && getUserBusinessId() == resource.data.businessId));
+      allow delete: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId)
+        || (canManageContent() && getUserBusinessId() == resource.data.businessId));
+    }
+
     match /activityLogs/{logId} {
       allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
       allow create: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId) || getUserBusinessId() == request.resource.data.businessId);
