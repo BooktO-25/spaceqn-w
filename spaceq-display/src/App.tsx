@@ -30,6 +30,7 @@ import { AnnouncementView } from './components/AnnouncementView';
 import { FeatureEditorView } from './components/FeatureEditorView';
 import { CampaignHubView } from './components/CampaignHubView';
 import { CampaignDeploymentView } from './components/CampaignDeploymentView';
+import { DefaultLayerEditor } from './components/DefaultLayerEditor';
 import { SuperAdminConsole } from './components/SuperAdminConsole';
 import { ShieldOff } from 'lucide-react';
 import { useOfflineAlerts, notificationsGranted, requestNotificationPermission } from './lib/useOfflineAlerts';
@@ -702,6 +703,10 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
 
           {activeTab === 'scrolling' && selectedBusiness && (
             <FeatureEditorView businessId={selectedBusiness.id} devices={bizDevices} darkMode={darkMode} />
+          )}
+
+          {activeTab === 'default-layer' && selectedBusiness && (
+            <DefaultLayerEditor businessId={selectedBusiness.id} devices={bizDevices} darkMode={darkMode} />
           )}
 
           {activeTab === 'team' && (
