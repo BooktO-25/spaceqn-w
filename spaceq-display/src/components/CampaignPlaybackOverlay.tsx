@@ -59,10 +59,12 @@ export const CampaignPlaybackOverlay: React.FC<Props> = ({
 
     for (const campaign of eligible) {
       const target = Math.min(3240, Math.max(1, Math.floor(Number(campaign.playsPerScreenPerDay) || 1)));
-      const offset = stableHash(campaign.id + deviceId) % target;
-      const elapsed = minutes - windowStart;
-      const slotIndex = Math.floor((elapsed * target) / windowLength);
-      const slotMinute = windowStart + Math.floor(((slotIndex * windowLength) + offset) / target);
+      const intervalMinutes = windowLength / target;
+      const offset = stableHash(campaign.id + deviceId) % Math.max(1, Math.floor(intervalMinutes));
+      const elapsed = minutes - windowStart - offset;
+      if (elapsed < 0) continue;
+      const slotIndex = Math.floor(elapsed / intervalMinutes);
+      const slotMinute = windowStart + offset + Math.floor(slotIndex * intervalMinutes);
       const lateness = minutes - slotMinute;
       if (lateness < 0 || lateness > 3) continue;
 
