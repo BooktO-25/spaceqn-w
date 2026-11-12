@@ -111,6 +111,8 @@ export interface Device {
    * priority ScheduleRule for "now" wins; if none match, activePlaylistId plays.
    * Falls back to [activePlaylistId] for devices paired before this existed. */
   assignedPlaylistIds?: string[];
+  /** Campaign documents explicitly deployed to this display for kiosk exact-ID reads. */
+  activeCampaignIds?: string[];
   /** Screen split configuration. Absent/SINGLE = normal full-screen device
    * using activePlaylistId/assignedPlaylistIds above as before (fully
    * backward compatible with every device paired before this existed).
