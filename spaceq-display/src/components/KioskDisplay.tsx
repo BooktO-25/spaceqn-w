@@ -291,12 +291,13 @@ export const KioskDisplay: React.FC = () => {
 
   // 4. Subscribe to content referenced by all assigned playlists, by exact ID.
   useEffect(() => {
-    const contentIds: string[] = Array.from(new Set<string>(
-      assignedPlaylists
+    const contentIds: string[] = Array.from(new Set<string>([
+      ...assignedPlaylists
         .flatMap(p => p.items || [])
         .map(i => i.contentId)
-        .filter((id): id is string => Boolean(id))
-    ));
+        .filter((id): id is string => Boolean(id)),
+      ...activeCampaigns.map(c => c.contentId).filter((id): id is string => Boolean(id)),
+    ]));
 
     // Prune content that is no longer referenced by any active playlist.
     // This prevents deleted/replaced content from surviving in player memory.
@@ -329,7 +330,7 @@ export const KioskDisplay: React.FC = () => {
     return () => unsubs.forEach(u => u());
     // Rebuild subscriptions when the actual referenced content IDs change,
     // not merely when the playlist IDs stay the same.
-  }, [assignedPlaylists.map(p => p.items?.map(i => i.contentId).join(',') || '').join('|')]);
+  }, [assignedPlaylists.map(p => p.items?.map(i => i.contentId).join(',') || '').join('|'), activeCampaigns.map(c => c.contentId).join(',')]);
 
   // Persist the last complete cycle. A transient Firestore disconnect must
   // never erase the only known-good offline state.
@@ -346,7 +347,7 @@ export const KioskDisplay: React.FC = () => {
     } catch (err) {
       console.warn('Offline snapshot save failed:', err);
     }
-  }, [device, assignedPlaylists, contents]);
+  }, [device, assignedPlaylists, activeCampaigns, contents]);
 
   // Proactively download all assigned image/video assets into the native cache.
   // This runs in the background and never blocks current playback.
