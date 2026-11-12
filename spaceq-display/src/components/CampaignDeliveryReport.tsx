@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, setDoc, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Device } from '../types';
 import { Download, RefreshCw, AlertCircle, CheckCircle2, Clock3 } from 'lucide-react';
@@ -136,7 +136,7 @@ export const CampaignDeliveryReport: React.FC<Props> = ({ businessId, campaigns,
         generatedAt: new Date().toISOString(),
         methodology: 'Delivered plays count only completed kiosk proof-of-play records received by SPACEQ. This is a play-count report, not a measurement of unique viewers or audience impressions.'
       };
-      await updateDoc(doc(db, 'campaignPublicReports', row.campaign.id), {
+      await setDoc(doc(db, 'campaignPublicReports', row.campaign.id), {
         shareTokenHash: tokenHash,
         publicReport: snapshot,
         shareUpdatedAt: new Date().toISOString()
