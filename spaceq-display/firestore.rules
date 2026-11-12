@@ -268,6 +268,33 @@ service cloud.firestore {
         || (canManageContent() && getUserBusinessId() == resource.data.businessId));
     }
 
+    // Kiosk-generated campaign delivery events. A device may create a
+    // completion record only for an ACTIVE campaign assigned to that device.
+    // These records are operational proof-of-play, not cryptographic attestation.
+    match /campaignPlayLogs/{logId} {
+      allow read: if isSignedIn()
+        && (isSuperAdmin()
+          || isRegionalAdminForBusiness(resource.data.businessId)
+          || getUserBusinessId() == resource.data.businessId);
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'businessId', 'campaignId', 'campaignName', 'deviceId',
+          'contentId', 'contentTitle', 'scheduledSlot', 'startedAt',
+          'endedAt', 'durationSeconds', 'completed', 'source', 'createdAt'
+        ])
+        && request.resource.data.source == 'KIOSK_PLAYER'
+        && request.resource.data.durationSeconds is number
+        && request.resource.data.completed is bool
+        && exists(/databases/$(database)/documents/devices/$(request.resource.data.deviceId))
+        && exists(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId))
+        && get(/databases/$(database)/documents/devices/$(request.resource.data.deviceId)).data.businessId == request.resource.data.businessId
+        && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.businessId == request.resource.data.businessId
+        && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.status == 'ACTIVE'
+        && request.resource.data.deviceId in get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.deviceIds
+        && get(/databases/$(database)/documents/campaigns/$(request.resource.data.campaignId)).data.contentId == request.resource.data.contentId;
+      allow update, delete: if false;
+    }
+
     match /activityLogs/{logId} {
       allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
       allow create: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId) || getUserBusinessId() == request.resource.data.businessId);
