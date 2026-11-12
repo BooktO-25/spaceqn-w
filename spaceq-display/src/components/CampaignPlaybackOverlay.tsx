@@ -22,6 +22,7 @@ type Props = {
   campaigns: ActiveCampaign[];
   contents: ContentItem[];
   suspended?: boolean;
+  onPlayingChange?: (playing: boolean) => void;
 };
 
 /**
@@ -30,7 +31,7 @@ type Props = {
  * A small local marker prevents a kiosk refresh from replaying the same slot.
  */
 export const CampaignPlaybackOverlay: React.FC<Props> = ({
-  deviceId, businessId, campaigns, contents, suspended = false,
+  deviceId, businessId, campaigns, contents, suspended = false, onPlayingChange,
 }) => {
   const [now, setNow] = useState(() => new Date());
   const [playing, setPlaying] = useState<{ campaign: ActiveCampaign; content: ContentItem; startedAt: string; slotKey: string } | null>(null);
@@ -78,6 +79,8 @@ export const CampaignPlaybackOverlay: React.FC<Props> = ({
       break;
     }
   }, [now, eligible, contents, deviceId, suspended, playing]);
+
+  useEffect(() => { onPlayingChange?.(!!playing); }, [playing, onPlayingChange]);
 
   useEffect(() => {
     if (!playing || startedRef.current) return;
