@@ -90,6 +90,10 @@ export const CampaignHubView: React.FC<Props> = ({ businessId, devices, contents
   };
 
   const setCampaignStatus = async (c: Campaign, status: Campaign['status']) => {
+    if (status === 'ACTIVE' && (!c.contentId || !c.deviceIds || c.deviceIds.length === 0)) {
+      setError('Add a creative and select at least one screen before activating this campaign.');
+      return;
+    }
     try { await updateDoc(doc(db, 'campaigns', c.id), { status, updatedAt: new Date().toISOString() }); }
     catch (err) { setError(err instanceof Error ? err.message : 'Could not update campaign'); }
   };
