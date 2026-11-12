@@ -14,7 +14,8 @@ import {
   Bell,
   BellOff,
   Rocket,
-  MessageSquareText
+  MessageSquareText,
+  Megaphone
 } from 'lucide-react';
 import { roleLabel } from '../lib/permissions';
 
@@ -54,6 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const managementItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'campaigns', label: 'Advertisers & Campaigns', icon: Megaphone },
     { 
       id: 'businesses', 
       label: userProfile?.role === 'BUSINESS_OWNER' ? 'My Business & Locations' : 'Businesses & Tenants', 
