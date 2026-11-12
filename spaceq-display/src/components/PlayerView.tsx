@@ -27,6 +27,7 @@ interface PlayerViewProps {
   panePlaylists: (Playlist | undefined)[];
   contents: ContentItem[];
   activeCampaigns?: any[];
+  defaultLayerConfig?: any;
   onHeartbeat: (deviceId: string) => void;
   onExitPlayer?: () => void;
   darkMode: boolean;
@@ -43,6 +44,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   panePlaylists,
   contents,
   activeCampaigns = [],
+  defaultLayerConfig,
   onHeartbeat,
   onExitPlayer,
   darkMode,
@@ -58,6 +60,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [cubeConfig, setCubeConfig] = useState<any>(null);
   const [mascotConfig, setMascotConfig] = useState<any>(null);
   const [qrConfig, setQrConfig] = useState<any>(null);
+  const [campaignIsPlaying, setCampaignIsPlaying] = useState(false);
 
   // Shared ticker subscription: this component powers both the dashboard
   // live preview and the physical kiosk display.
@@ -583,6 +586,16 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           />
         )}
 
+        {kioskMode && !panePlaylists.some(pl => (pl?.items || []).some(item => contents.some(content => content.id === item.contentId))) && !campaignIsPlaying && !isBroadcastActive(device) && (
+          <div aria-label="SPACEQ default advertise here slide" className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 overflow-hidden" style={{ zIndex: 2147483645, backgroundColor: defaultLayerConfig?.backgroundColor || '#071A35', backgroundImage: defaultLayerConfig?.backgroundImageUrl ? `linear-gradient(rgba(0,0,0,.48),rgba(0,0,0,.58)),url(\"${defaultLayerConfig.backgroundImageUrl}\")` : `radial-gradient(circle at 85% 15%, ${(defaultLayerConfig?.accentColor || '#00B3A4')}55, transparent 38%)`, backgroundSize: 'cover', backgroundPosition: 'center', color: defaultLayerConfig?.textColor || '#FFFFFF' }}>
+            <div className="text-xs font-bold tracking-[.35em] mb-6" style={{ color: defaultLayerConfig?.accentColor || '#00B3A4' }}>SPACEQ DIGITAL DISPLAYS</div>
+            <div className="text-4xl md:text-6xl font-black tracking-tight leading-tight">{defaultLayerConfig?.headline || 'ADVERTISE HERE'}</div>
+            <div className="max-w-3xl mt-5 text-lg md:text-2xl opacity-90">{defaultLayerConfig?.subheading || 'Reach more customers with SPACEQ digital displays.'}</div>
+            <div className="mt-8 rounded-full px-7 py-4 font-bold text-base md:text-xl" style={{ background: defaultLayerConfig?.accentColor || '#00B3A4', color: '#071A35' }}>{defaultLayerConfig?.contact || 'For advertising enquiries: 9494492902'}</div>
+            <div className="absolute bottom-5 text-xs tracking-[.2em] opacity-75">{defaultLayerConfig?.footer || 'LOCAL • REGIONAL • BRAND ADVERTISING'}</div>
+          </div>
+        )}
+
         {kioskMode && activeCampaigns.length > 0 && (
           <CampaignPlaybackOverlay
             deviceId={device.id}
@@ -590,6 +603,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
             campaigns={activeCampaigns}
             contents={contents}
             suspended={isBroadcastActive(device)}
+            onPlayingChange={setCampaignIsPlaying}
           />
         )}
       </div>
