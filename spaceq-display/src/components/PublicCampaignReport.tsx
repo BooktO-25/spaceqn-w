@@ -22,9 +22,10 @@ export const PublicCampaignReport: React.FC<{campaignId:string;token:string}> = 
         const snap = await getDoc(doc(db,'campaignPublicReports',token));
         if (!snap.exists()) { if(alive)setState('invalid'); return; }
         const data = snap.data();
-        const digest = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));
-        const hash = Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
-        if (!data.shareTokenHash || hash !== data.shareTokenHash || !data.publicReport) { if(alive)setState('invalid'); return; }
+        // The token is the Firestore document ID and the rules verify it
+        // against the campaign's private active-token registry.
+        // Also bind the report to the campaign ID carried in the URL.
+        if (data.campaignId !== campaignId || !data.publicReport) { if(alive)setState('invalid'); return; }
         if(alive) { setReport(data.publicReport as PublicReportData); setState('ready'); }
       } catch { if(alive)setState('error'); }
     };
