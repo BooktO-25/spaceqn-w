@@ -136,10 +136,16 @@ export const CampaignDeliveryReport: React.FC<Props> = ({ businessId, campaigns,
         generatedAt: new Date().toISOString(),
         methodology: 'Delivered plays count only completed kiosk proof-of-play records received by SPACEQ. This is a play-count report, not a measurement of unique viewers or audience impressions.'
       };
-      await setDoc(doc(db, 'campaignPublicReports', row.campaign.id), {
-        shareTokenHash: tokenHash,
+      await setDoc(doc(db, 'campaignPublicReports', token), {
+        businessId,
+        campaignId: row.campaign.id,
         publicReport: snapshot,
         shareUpdatedAt: new Date().toISOString()
+      });
+      await setDoc(doc(db, 'campaignReportAccess', row.campaign.id), {
+        businessId,
+        activeToken: token,
+        updatedAt: new Date().toISOString()
       });
       const url = new URL(window.location.href);
       url.search = '';
