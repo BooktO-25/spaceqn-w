@@ -36,6 +36,7 @@ export const KioskDisplay: React.FC = () => {
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [device, setDevice] = useState<Device | null | undefined>(undefined); // undefined = loading
   const [assignedPlaylists, setAssignedPlaylists] = useState<Playlist[]>([]);
+  const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [now, setNow] = useState(() => new Date());
   const [copied, setCopied] = useState(false);
@@ -49,6 +50,7 @@ export const KioskDisplay: React.FC = () => {
     setDeviceId(null);
     setDevice(undefined);
     setAssignedPlaylists([]);
+    setActiveCampaigns([]);
     setContents([]);
   };
 
@@ -251,6 +253,42 @@ export const KioskDisplay: React.FC = () => {
   const panePlaylistIds = device ? resolveAllPanePlaylistIds(device, assignedPlaylists, now) : [undefined];
   const panePlaylists = panePlaylistIds.map(id => assignedPlaylists.find(p => p.id === id));
 
+  // 3b. Subscribe only to campaign IDs explicitly deployed to this device.
+  // The device document is the kiosk's allow-listed index; campaign documents
+  // are fetched by exact ID, never by listing the tenant's campaign collection.
+  useEffect(() => {
+    const ids = device?.businessId && Array.isArray((device as any).activeCampaignIds)
+      ? (device as any).activeCampaignIds as string[] : [];
+    setActiveCampaigns(prev => prev.filter(c => ids.includes(c.id)));
+    if (!ids.length) { setActiveCampaigns([]); return; }
+    const unsubs = ids.map(id => onSnapshot(doc(db, 'campaigns', id), snap => {
+      if (!snap.exists()) {
+        setActiveCampaigns(prev => prev.filter(c => c.id !== id));
+        return;
+      }
+      const campaign = { id: snap.id, ...snap.data() };
+      setActiveCampaigns(prev => {
+        const next = prev.filter(c => c.id !== id);
+        if (campaign.status === 'ACTIVE' && campaign.deviceIds?.includes(device?.id)) next.push(campaign);
+        return next;
+      });
+    }, err => console.warn('Campaign subscription failed:', err)));
+    return () => unsubs.forEach(unsub => unsub());
+  }, [device?.id, device?.businessId, JSON.stringify((device as any)?.activeCampaignIds || [])]);
+
+  // Campaign creative assets are also fetched by exact ID. They are cached
+  // through the same native media path as manual playlist assets.
+  useEffect(() => {
+    const ids = Array.from(new Set(activeCampaigns.map(c => c.contentId).filter(Boolean)));
+    if (!ids.length) return;
+    const unsubs = ids.map(id => onSnapshot(doc(db, 'contents', id), snap => {
+      if (!snap.exists()) return;
+      const item = { id: snap.id, ...snap.data() } as ContentItem;
+      setContents(prev => prev.some(x => x.id === id) ? prev.map(x => x.id === id ? item : x) : [...prev, item]);
+    }, err => console.warn('Campaign creative subscription failed:', err)));
+    return () => unsubs.forEach(unsub => unsub());
+  }, [activeCampaigns.map(c => c.contentId).join(',')]);
+
   // 4. Subscribe to content referenced by all assigned playlists, by exact ID.
   useEffect(() => {
     const contentIds: string[] = Array.from(new Set<string>(
@@ -302,6 +340,7 @@ export const KioskDisplay: React.FC = () => {
         savedAt: Date.now(),
         device,
         assignedPlaylists,
+        activeCampaigns,
         contents,
       }));
     } catch (err) {
