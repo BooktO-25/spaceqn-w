@@ -13,6 +13,7 @@ type ActiveCampaign = {
   startDate: string;
   endDate: string;
   playsPerScreenPerDay: number;
+  blipDurationSeconds?: number;
   status: string;
 };
 
@@ -59,7 +60,9 @@ export const CampaignPlaybackOverlay: React.FC<Props> = ({
     if (minutes < windowStart || minutes >= windowStart + windowLength) return;
 
     for (const campaign of eligible) {
-      const target = Math.min(3240, Math.max(1, Math.floor(Number(campaign.playsPerScreenPerDay) || 1)));
+      const durationSeconds = Math.max(5, Math.min(120, Number(campaign.blipDurationSeconds) || 10));
+      const airtimeLimitedTarget = Math.floor((9 * 60 * 60) / durationSeconds);
+      const target = Math.min(airtimeLimitedTarget, Math.max(1, Math.floor(Number(campaign.playsPerScreenPerDay) || 1)));
       const intervalMinutes = windowLength / target;
       const offset = stableHash(campaign.id + deviceId) % Math.max(1, Math.floor(intervalMinutes));
       const elapsed = minutes - windowStart - offset;
@@ -85,7 +88,7 @@ export const CampaignPlaybackOverlay: React.FC<Props> = ({
   useEffect(() => {
     if (!playing || startedRef.current) return;
     startedRef.current = true;
-    const durationSeconds = Math.max(5, Math.min(120, Number(playing.content.durationSeconds) || 10));
+    const durationSeconds = Math.max(5, Math.min(120, Number(playing.campaign.blipDurationSeconds) || 10));
     const timer = window.setTimeout(async () => {
       const endedAt = new Date().toISOString();
       const actualDuration = Math.max(0, (Date.parse(endedAt) - Date.parse(playing.startedAt)) / 1000);
@@ -127,7 +130,7 @@ export const CampaignPlaybackOverlay: React.FC<Props> = ({
       {content.type === 'IMAGE' ? (
         <img src={content.url} alt={content.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       ) : content.type === 'VIDEO' ? (
-        <video src={content.url} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <video src={content.url} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       ) : content.type === 'TEMPLATE' && content.pageContent ? (
         <div style={{ width: '100%', height: '100%' }}><div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}><div style={{ color: '#fff', fontSize: '4vw', fontWeight: 800, textAlign: 'center', padding: '5vw' }}>{content.pageContent.headline || content.title}</div></div></div>
       ) : (
