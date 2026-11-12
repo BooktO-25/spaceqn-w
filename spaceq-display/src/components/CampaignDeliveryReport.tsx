@@ -15,6 +15,7 @@ type Campaign = {
   startDate: string;
   endDate: string;
   playsPerScreenPerDay: number;
+  blipDurationSeconds?: number;
   status: 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED';
 };
 type PlayLog = {
@@ -129,12 +130,15 @@ export const CampaignDeliveryReport: React.FC<Props> = ({ businessId, campaigns,
         advertiserName: row.campaign.advertiserName || 'Advertiser',
         status: row.campaign.status,
         fromDate, toDate,
+        blipDurationSeconds: row.campaign.blipDurationSeconds || 10,
+        committedAirtimeSeconds: row.committed * (row.campaign.blipDurationSeconds || 10),
+        deliveredAirtimeSeconds: row.delivered * (row.campaign.blipDurationSeconds || 10),
         committed: row.committed, delivered: row.delivered,
         pending: row.pending, unconfirmed: row.unconfirmed,
         achievement: Number(row.achievement.toFixed(1)),
         screens: row.screenRows.map(s => ({ name: s.name, committed: s.committed, delivered: s.delivered, pending: s.pending, unconfirmed: s.unconfirmed, achievement: Number(s.achievement.toFixed(1)) })),
         generatedAt: new Date().toISOString(),
-        methodology: 'Delivered plays count only completed kiosk proof-of-play records received by SPACEQ. This is a play-count report, not a measurement of unique viewers or audience impressions.'
+        methodology: 'Campaign blip duration is the configured airtime per play. Delivered airtime is calculated from completed play records and configured duration. Delivered plays count only completed kiosk proof-of-play records received by SPACEQ. This is a play-count report, not a measurement of unique viewers or audience impressions.'
       };
       await setDoc(doc(db, 'campaignPublicReports', token), {
         businessId,
