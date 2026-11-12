@@ -106,7 +106,7 @@ export const CampaignHubView: React.FC<Props> = ({ businessId, devices, contents
         <div><p className={`text-xs uppercase tracking-widest font-bold ${muted}`}>Sales & delivery</p><h1 className="text-2xl font-bold mt-1">Advertisers & Campaigns</h1><p className={`text-sm mt-1 ${muted}`}>Manage client relationships and the campaigns running across your displays.</p></div>
         <div className="flex gap-2">
           <button onClick={() => { setShowAdvertiserForm(true); setTab('advertisers'); }} className="px-4 py-2 rounded-lg border border-slate-600 text-sm font-semibold flex items-center gap-2"><Plus size={16}/> Advertiser</button>
-          <button onClick={openNewCampaign} disabled={!advertisers.length || !devices.length || !contents.length} className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white text-sm font-semibold flex items-center gap-2"><Plus size={16}/> New campaign</button>
+          <button onClick={openNewCampaign} disabled={!advertisers.length} className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white text-sm font-semibold flex items-center gap-2"><Plus size={16}/> New campaign</button>
         </div>
       </div>
 
