@@ -461,6 +461,7 @@ export const KioskDisplay: React.FC = () => {
           device={device}
           panePlaylists={panePlaylists}
           contents={contents}
+          activeCampaigns={activeCampaigns}
           onHeartbeat={() => {}}
           darkMode={true}
           kioskMode
