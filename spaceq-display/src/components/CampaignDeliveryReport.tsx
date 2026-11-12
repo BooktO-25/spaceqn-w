@@ -136,7 +136,7 @@ export const CampaignDeliveryReport: React.FC<Props> = ({ businessId, campaigns,
         generatedAt: new Date().toISOString(),
         methodology: 'Delivered plays count only completed kiosk proof-of-play records received by SPACEQ. This is a play-count report, not a measurement of unique viewers or audience impressions.'
       };
-      await updateDoc(doc(db, 'campaigns', row.campaign.id), {
+      await updateDoc(doc(db, 'campaignPublicReports', row.campaign.id), {
         shareTokenHash: tokenHash,
         publicReport: snapshot,
         shareUpdatedAt: new Date().toISOString()
