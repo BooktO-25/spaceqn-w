@@ -37,6 +37,11 @@ export const KioskDisplay: React.FC = () => {
   const [device, setDevice] = useState<Device | null | undefined>(undefined); // undefined = loading
   const [assignedPlaylists, setAssignedPlaylists] = useState<Playlist[]>([]);
   const [activeCampaigns, setActiveCampaigns] = useState<any[]>([]);
+  const [defaultLayerConfig, setDefaultLayerConfig] = useState<any>({
+    enabled: true, headline: 'ADVERTISE HERE', subheading: 'Reach more customers with SPACEQ digital displays.',
+    contact: 'For advertising enquiries: 9494492902', footer: 'LOCAL • REGIONAL • BRAND ADVERTISING',
+    backgroundColor: '#071A35', accentColor: '#00B3A4', textColor: '#FFFFFF', backgroundImageUrl: '',
+  });
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [now, setNow] = useState(() => new Date());
   const [copied, setCopied] = useState(false);
@@ -51,6 +56,7 @@ export const KioskDisplay: React.FC = () => {
     setDevice(undefined);
     setAssignedPlaylists([]);
     setActiveCampaigns([]);
+    setDefaultLayerConfig({ enabled: true, headline: 'ADVERTISE HERE', subheading: 'Reach more customers with SPACEQ digital displays.', contact: 'For advertising enquiries: 9494492902', footer: 'LOCAL • REGIONAL • BRAND ADVERTISING', backgroundColor: '#071A35', accentColor: '#00B3A4', textColor: '#FFFFFF', backgroundImageUrl: '' });
     setContents([]);
   };
 
@@ -463,6 +469,7 @@ export const KioskDisplay: React.FC = () => {
           panePlaylists={panePlaylists}
           contents={contents}
           activeCampaigns={activeCampaigns}
+          defaultLayerConfig={defaultLayerConfig}
           onHeartbeat={() => {}}
           darkMode={true}
           kioskMode
