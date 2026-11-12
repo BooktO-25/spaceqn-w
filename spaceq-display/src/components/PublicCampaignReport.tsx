@@ -19,7 +19,7 @@ export const PublicCampaignReport: React.FC<{campaignId:string;token:string}> = 
     const load = async () => {
       try {
         if (!campaignId || !token || !/^[a-zA-Z0-9_-]{1,150}$/.test(campaignId)) { if(alive)setState('invalid'); return; }
-        const snap = await getDoc(doc(db,'campaignPublicReports',campaignId));
+        const snap = await getDoc(doc(db,'campaignPublicReports',token));
         if (!snap.exists()) { if(alive)setState('invalid'); return; }
         const data = snap.data();
         const digest = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));
