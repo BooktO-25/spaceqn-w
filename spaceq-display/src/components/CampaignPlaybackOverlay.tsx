@@ -118,7 +118,7 @@ export const CampaignPlaybackOverlay: React.FC<Props> = ({
 
   if (!playing) return null;
   const { campaign, content } = playing;
-  const style: React.CSSProperties = { position: 'absolute', inset: 0, zIndex: 2147483645, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
+  const style: React.CSSProperties = { position: 'absolute', inset: 0, zIndex: 2147483647, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' };
   return (
     <div style={style} aria-label={`Campaign advertisement: ${campaign.name}`}>
       {content.type === 'IMAGE' ? (
