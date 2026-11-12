@@ -293,29 +293,52 @@ service cloud.firestore {
     }
 
 
-    // Public client-facing campaign report snapshots.
-    // The document contains only a sanitized report plus a SHA-256 token hash.
-    // Anyone may GET one exact report document; collection listing is denied.
-    // Only authenticated users belonging to the report's business can create,
-    // refresh, or revoke it. The random bearer token is checked by the app.
-    match /campaignPublicReports/{campaignId} {
-      allow get: if true;
+    // Client-facing report snapshots use the unguessable token as document ID.
+    // The access document stores the currently active token for each campaign.
+    // This lets a new link immediately invalidate the previous token.
+    match /campaignPublicReports/{token} {
+      allow get: if exists(/databases/$(database)/documents/campaignReportAccess/$(resource.data.campaignId))
+        && get(/databases/$(database)/documents/campaignReportAccess/$(resource.data.campaignId)).data.activeToken == token
+        && get(/databases/$(database)/documents/campaignReportAccess/$(resource.data.campaignId)).data.businessId == resource.data.businessId;
       allow list: if false;
       allow create: if isSignedIn()
         && request.resource.data.businessId is string
+        && request.resource.data.campaignId is string
+        && request.resource.data.keys().hasOnly([
+          'businessId', 'campaignId', 'publicReport', 'shareUpdatedAt'
+        ])
         && (isSuperAdmin()
           || isRegionalAdminForBusiness(request.resource.data.businessId)
-          || (canManageContent() && getUserBusinessId() == request.resource.data.businessId))
-        && request.resource.data.campaignId == campaignId
-        && request.resource.data.keys().hasOnly([
-          'businessId', 'campaignId', 'shareTokenHash', 'publicReport', 'shareUpdatedAt'
-        ]);
+          || (canManageContent() && getUserBusinessId() == request.resource.data.businessId));
       allow update: if isSignedIn()
         && request.resource.data.businessId == resource.data.businessId
         && request.resource.data.campaignId == resource.data.campaignId
         && request.resource.data.keys().hasOnly([
-          'businessId', 'campaignId', 'shareTokenHash', 'publicReport', 'shareUpdatedAt'
+          'businessId', 'campaignId', 'publicReport', 'shareUpdatedAt'
         ])
+        && (isSuperAdmin()
+          || isRegionalAdminForBusiness(resource.data.businessId)
+          || (canManageContent() && getUserBusinessId() == resource.data.businessId));
+      allow delete: if isSignedIn()
+        && (isSuperAdmin()
+          || isRegionalAdminForBusiness(resource.data.businessId)
+          || (canManageContent() && getUserBusinessId() == resource.data.businessId));
+    }
+
+    // Private active-token registry. Public clients cannot read or enumerate it.
+    match /campaignReportAccess/{campaignId} {
+      allow read: if false;
+      allow create: if isSignedIn()
+        && request.resource.data.businessId is string
+        && request.resource.data.activeToken is string
+        && request.resource.data.keys().hasOnly(['businessId', 'activeToken', 'updatedAt'])
+        && (isSuperAdmin()
+          || isRegionalAdminForBusiness(request.resource.data.businessId)
+          || (canManageContent() && getUserBusinessId() == request.resource.data.businessId));
+      allow update: if isSignedIn()
+        && request.resource.data.businessId == resource.data.businessId
+        && request.resource.data.activeToken is string
+        && request.resource.data.keys().hasOnly(['businessId', 'activeToken', 'updatedAt'])
         && (isSuperAdmin()
           || isRegionalAdminForBusiness(resource.data.businessId)
           || (canManageContent() && getUserBusinessId() == resource.data.businessId));
