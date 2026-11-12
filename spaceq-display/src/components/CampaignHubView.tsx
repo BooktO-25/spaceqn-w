@@ -82,8 +82,22 @@ export const CampaignHubView: React.FC<Props> = ({ businessId, devices, contents
       const content = contents.find(c => c.id === campaignForm.contentId);
       const advertiser = selectedAdvertiser || advertisers.find(a => a.id === campaignForm.advertiserId);
       const payload = { ...campaignForm, name: campaignForm.name.trim(), advertiserName: advertiser?.name || '', contentTitle: content?.title || '', businessId, status: (editingCampaignId ? campaigns.find(c => c.id === editingCampaignId)?.status : 'DRAFT') || 'DRAFT', updatedAt: new Date().toISOString() };
-      if (editingCampaignId) await updateDoc(doc(db, 'campaigns', editingCampaignId), payload);
-      else await addDoc(collection(db, 'campaigns'), { ...payload, createdAt: new Date().toISOString() });
+      if (editingCampaignId) {
+        const existing = campaigns.find(c => c.id === editingCampaignId);
+        if (existing?.status === 'ACTIVE') {
+          const previousIds = existing.deviceIds || [];
+          const nextIds = campaignForm.deviceIds || [];
+          for (const id of previousIds.filter(id => !nextIds.includes(id))) {
+            await updateDoc(doc(db, 'devices', id), { activeCampaignIds: arrayRemove(editingCampaignId) });
+          }
+          for (const id of nextIds.filter(id => !previousIds.includes(id))) {
+            await updateDoc(doc(db, 'devices', id), { activeCampaignIds: arrayUnion(editingCampaignId) });
+          }
+        }
+        await updateDoc(doc(db, 'campaigns', editingCampaignId), payload);
+      } else {
+        await addDoc(collection(db, 'campaigns'), { ...payload, createdAt: new Date().toISOString() });
+      }
       setShowCampaignForm(false); setEditingCampaignId(null);
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save campaign'); }
     finally { setSaving(false); }
@@ -95,6 +109,28 @@ export const CampaignHubView: React.FC<Props> = ({ businessId, devices, contents
       return;
     }
     try {
+      if (status === 'ACTIVE') {
+        const conflicts = (c.deviceIds || []).flatMap(deviceId => {
+          const overlapping = campaigns.filter(other =>
+            other.id !== c.id &&
+            other.status === 'ACTIVE' &&
+            (other.deviceIds || []).includes(deviceId) &&
+            other.startDate <= c.endDate &&
+            other.endDate >= c.startDate
+          );
+          const committed = overlapping.reduce((sum, other) => sum + Math.max(0, Number(other.playsPerScreenPerDay) || 0), 0);
+          const requested = Math.max(0, Number(c.playsPerScreenPerDay) || 0);
+          return committed + requested > 3240
+            ? [{ deviceId, committed, requested, total: committed + requested }]
+            : [];
+        });
+        if (conflicts.length) {
+          const first = conflicts[0];
+          const screenName = devices.find(d => d.id === first.deviceId)?.name || first.deviceId;
+          setError(`Capacity exceeded on ${screenName}: ${first.committed} existing + ${first.requested} requested = ${first.total} plays/day. The sellable limit is 3,240 per screen/day.`);
+          return;
+        }
+      }
       // Keep the device's campaign ID list as the kiosk's narrow, exact-document
       // subscription index. The existing manual playlist assignments are untouched.
       for (const deviceId of c.deviceIds || []) {
