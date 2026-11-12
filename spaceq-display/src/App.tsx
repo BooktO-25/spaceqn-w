@@ -29,6 +29,7 @@ import { TeamView } from './components/TeamView';
 import { AnnouncementView } from './components/AnnouncementView';
 import { FeatureEditorView } from './components/FeatureEditorView';
 import { CampaignHubView } from './components/CampaignHubView';
+import { CampaignDeploymentView } from './components/CampaignDeploymentView';
 import { SuperAdminConsole } from './components/SuperAdminConsole';
 import { ShieldOff } from 'lucide-react';
 import { useOfflineAlerts, notificationsGranted, requestNotificationPermission } from './lib/useOfflineAlerts';
@@ -672,6 +673,10 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
 
           {activeTab === 'campaigns' && selectedBusiness && (
             <CampaignHubView businessId={selectedBusiness.id} devices={bizDevices} contents={contents.filter(c => c.businessId === selectedBusiness.id)} darkMode={darkMode} />
+          )}
+
+          {activeTab === 'campaign-deployment' && selectedBusiness && (
+            <CampaignDeploymentView businessId={selectedBusiness.id} devices={bizDevices} contents={contents.filter(c => c.businessId === selectedBusiness.id)} darkMode={darkMode} />
           )}
 
           {activeTab === 'content' && (
