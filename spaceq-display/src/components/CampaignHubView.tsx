@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { ContentItem, Device } from '../types';
 import { Megaphone, Plus, Users, CalendarDays, Tv, Trash2, Pencil, X, Save } from 'lucide-react';
@@ -94,8 +94,16 @@ export const CampaignHubView: React.FC<Props> = ({ businessId, devices, contents
       setError('Add a creative and select at least one screen before activating this campaign.');
       return;
     }
-    try { await updateDoc(doc(db, 'campaigns', c.id), { status, updatedAt: new Date().toISOString() }); }
-    catch (err) { setError(err instanceof Error ? err.message : 'Could not update campaign'); }
+    try {
+      // Keep the device's campaign ID list as the kiosk's narrow, exact-document
+      // subscription index. The existing manual playlist assignments are untouched.
+      for (const deviceId of c.deviceIds || []) {
+        await updateDoc(doc(db, 'devices', deviceId), {
+          activeCampaignIds: status === 'ACTIVE' ? arrayUnion(c.id) : arrayRemove(c.id),
+        });
+      }
+      await updateDoc(doc(db, 'campaigns', c.id), { status, updatedAt: new Date().toISOString() });
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not update campaign deployment'); }
   };
 
   const removeCampaign = async (c: Campaign) => {
