@@ -582,17 +582,17 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
             })()}
           />
         )}
-      </div>
 
-      {kioskMode && activeCampaigns.length > 0 && (
-        <CampaignPlaybackOverlay
-          deviceId={device.id}
-          businessId={device.businessId}
-          campaigns={activeCampaigns}
-          contents={contents}
-          suspended={isBroadcastActive(device)}
-        />
-      )}
+        {kioskMode && activeCampaigns.length > 0 && (
+          <CampaignPlaybackOverlay
+            deviceId={device.id}
+            businessId={device.businessId}
+            campaigns={activeCampaigns}
+            contents={contents}
+            suspended={isBroadcastActive(device)}
+          />
+        )}
+      </div>
 
       {/* Bottom Status Ticker — dashboard preview only */}
       {!hideChrome && (
