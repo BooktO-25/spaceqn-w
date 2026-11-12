@@ -586,7 +586,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           />
         )}
 
-        {kioskMode && !panePlaylists.some(pl => (pl?.items || []).some(item => contents.some(content => content.id === item.contentId))) && !campaignIsPlaying && !isBroadcastActive(device) && (
+        {kioskMode && device.status !== 'PAIRING' && !panePlaylists.some(pl => (pl?.items || []).some(item => contents.some(content => content.id === item.contentId))) && !campaignIsPlaying && !isBroadcastActive(device) && (
           <div aria-label="SPACEQ default advertise here slide" className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 overflow-hidden" style={{ zIndex: 2147483645, backgroundColor: defaultLayerConfig?.backgroundColor || '#071A35', backgroundImage: defaultLayerConfig?.backgroundImageUrl ? `linear-gradient(rgba(0,0,0,.48),rgba(0,0,0,.58)),url(\"${defaultLayerConfig.backgroundImageUrl}\")` : `radial-gradient(circle at 85% 15%, ${(defaultLayerConfig?.accentColor || '#00B3A4')}55, transparent 38%)`, backgroundSize: 'cover', backgroundPosition: 'center', color: defaultLayerConfig?.textColor || '#FFFFFF' }}>
             <div className="text-xs font-bold tracking-[.35em] mb-6" style={{ color: defaultLayerConfig?.accentColor || '#00B3A4' }}>SPACEQ DIGITAL DISPLAYS</div>
             <div className="text-4xl md:text-6xl font-black tracking-tight leading-tight">{defaultLayerConfig?.headline || 'ADVERTISE HERE'}</div>
