@@ -16,7 +16,8 @@ import {
   Rocket,
   MessageSquareText,
   Megaphone,
-  Radio
+  Radio,
+  PanelsTopLeft
 } from 'lucide-react';
 import { roleLabel } from '../lib/permissions';
 
@@ -69,6 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       : []),
     { id: 'team', label: 'Team', icon: Users },
     { id: 'scrolling', label: 'Feature Editor', icon: MessageSquareText },
+    { id: 'default-layer', label: 'Default Display Layer', icon: PanelsTopLeft },
   ];
 
   const studioItems = [
