@@ -54,23 +54,23 @@ export const CampaignPlaybackOverlay: React.FC<Props> = ({
 
   useEffect(() => {
     if (suspended || playing || eligible.length === 0) return;
-    const minutes = now.getHours() * 60 + now.getMinutes();
-    const windowStart = 10 * 60;
-    const windowLength = 10 * 60;
-    if (minutes < windowStart || minutes >= windowStart + windowLength) return;
+    const secondsOfDay = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const windowStart = 10 * 3600;
+    const windowLength = 10 * 3600;
+    if (secondsOfDay < windowStart || secondsOfDay >= windowStart + windowLength) return;
 
     for (const campaign of eligible) {
       const durationSeconds = Math.max(5, Math.min(120, Number(campaign.blipDurationSeconds) || 10));
       const airtimeLimitedTarget = Math.floor((9 * 60 * 60) / durationSeconds);
       const target = Math.min(airtimeLimitedTarget, Math.max(1, Math.floor(Number(campaign.playsPerScreenPerDay) || 1)));
-      const intervalMinutes = windowLength / target;
-      const offset = stableHash(campaign.id + deviceId) % Math.max(1, Math.floor(intervalMinutes));
-      const elapsed = minutes - windowStart - offset;
+      const intervalSeconds = windowLength / target;
+      const offset = stableHash(campaign.id + deviceId) % Math.max(1, Math.floor(intervalSeconds));
+      const elapsed = secondsOfDay - windowStart - offset;
       if (elapsed < 0) continue;
-      const slotIndex = Math.floor(elapsed / intervalMinutes);
-      const slotMinute = windowStart + offset + Math.floor(slotIndex * intervalMinutes);
-      const lateness = minutes - slotMinute;
-      if (lateness < 0 || lateness > 3) continue;
+      const slotIndex = Math.floor(elapsed / intervalSeconds);
+      const slotSecond = windowStart + offset + Math.floor(slotIndex * intervalSeconds);
+      const latenessSeconds = secondsOfDay - slotSecond;
+      if (latenessSeconds < 0 || latenessSeconds > 15) continue;
 
       const slotKey = `spaceq_campaign_slot_${campaign.id}_${deviceId}_${localDate(now)}_${slotIndex}`;
       if (localStorage.getItem(slotKey)) continue;
