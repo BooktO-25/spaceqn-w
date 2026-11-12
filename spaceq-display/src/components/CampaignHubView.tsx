@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { ContentItem, Device } from '../types';
-import { Megaphone, Plus, Users, CalendarDays, Tv, Trash2, Pencil, X, Save } from 'lucide-react';
+import { Megaphone, Plus, Users, CalendarDays, Tv, Trash2, Pencil, X, Save, BarChart3 } from 'lucide-react';
+import { CampaignDeliveryReport } from './CampaignDeliveryReport';
 
 type Advertiser = {
   id: string; businessId: string; name: string; contactPerson: string;
@@ -25,7 +26,7 @@ const blankCampaign = { advertiserId: '', name: '', contentId: '', deviceIds: []
 export const CampaignHubView: React.FC<Props> = ({ businessId, devices, contents, darkMode }) => {
   const [advertisers, setAdvertisers] = useState<Advertiser[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [tab, setTab] = useState<'campaigns' | 'advertisers'>('campaigns');
+  const [tab, setTab] = useState<'campaigns' | 'advertisers' | 'delivery'>('campaigns');
   const [showAdvertiserForm, setShowAdvertiserForm] = useState(false);
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
@@ -166,7 +167,10 @@ export const CampaignHubView: React.FC<Props> = ({ businessId, devices, contents
       <div className="flex gap-2 border-b border-slate-700/30">
         <button onClick={() => setTab('campaigns')} className={`px-4 py-2 text-sm font-semibold border-b-2 ${tab === 'campaigns' ? 'border-rose-500 text-rose-500' : muted}`}>Campaigns ({campaigns.length})</button>
         <button onClick={() => setTab('advertisers')} className={`px-4 py-2 text-sm font-semibold border-b-2 ${tab === 'advertisers' ? 'border-rose-500 text-rose-500' : muted}`}>Advertisers ({advertisers.length})</button>
+        <button onClick={() => setTab('delivery')} className={`px-4 py-2 text-sm font-semibold border-b-2 flex items-center gap-1 ${tab === 'delivery' ? 'border-rose-500 text-rose-500' : muted}`}><BarChart3 size={14}/> Delivery report</button>
       </div>
+
+      {tab === 'delivery' && <CampaignDeliveryReport businessId={businessId} campaigns={campaigns} devices={devices} darkMode={darkMode} />}
 
       {tab === 'campaigns' && <div className="space-y-3">
         {!campaigns.length ? <div className={`rounded-xl border p-10 text-center ${panel}`}><Megaphone className={`mx-auto mb-3 ${muted}`} size={30}/><h3 className="font-semibold">No campaigns yet</h3><p className={`text-sm mt-1 ${muted}`}>Add an advertiser and create your first campaign.</p></div> :
