@@ -4,8 +4,8 @@ import { ArrowLeft, Download, MonitorPlay, Printer } from 'lucide-react';
 const packages = [
   {
     name: 'Starter',
-    price: '₹4,897',
-    dailyPerScreen: '₹32.65',
+    price: '₹5,497',
+    dailyPerScreen: '₹36.65',
     screens: '5 screens',
     billing: 'Monthly advance',
     badge: '',
@@ -13,8 +13,8 @@ const packages = [
   },
   {
     name: 'Growth',
-    price: '₹9,497',
-    dailyPerScreen: '₹31.66',
+    price: '₹10,147',
+    dailyPerScreen: '₹33.82',
     screens: '10 screens',
     billing: 'Monthly advance',
     badge: 'MOST POPULAR',
@@ -22,8 +22,8 @@ const packages = [
   },
   {
     name: 'Premium',
-    price: '₹13,947',
-    dailyPerScreen: '₹30.99',
+    price: '₹14,847',
+    dailyPerScreen: '₹32.99',
     screens: '15 screens',
     billing: 'Monthly advance',
     badge: 'BEST COVERAGE',
