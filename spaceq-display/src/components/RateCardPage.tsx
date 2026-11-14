@@ -5,6 +5,7 @@ const packages = [
   {
     name: 'Starter',
     price: '₹4,897',
+    dailyPerScreen: '₹32.65',
     screens: '5 screens',
     billing: 'Monthly advance',
     badge: '',
@@ -13,6 +14,7 @@ const packages = [
   {
     name: 'Growth',
     price: '₹9,847',
+    dailyPerScreen: '₹32.82',
     screens: '10 screens',
     billing: 'Monthly advance',
     badge: 'MOST POPULAR',
@@ -21,6 +23,7 @@ const packages = [
   {
     name: 'Premium',
     price: '₹14,897',
+    dailyPerScreen: '₹33.10',
     screens: '15 screens',
     billing: 'Monthly advance',
     badge: 'BEST COVERAGE',
@@ -80,7 +83,7 @@ export const RateCardPage: React.FC = () => {
             <h1 className="text-3xl font-black tracking-tight text-white md:text-4xl">Screen Advertising <span className="text-teal-400">Rate Card</span></h1>
             <p className="mt-2 text-sm text-slate-400">15+ digital screens · Multiple locations · Local brand visibility</p>
           </div>
-          <p className="max-w-sm text-xs leading-5 text-slate-400">Choose the monthly package that fits your required screen coverage.</p>
+          <p className="max-w-sm text-xs leading-5 text-slate-400">See the approximate daily cost per screen, with the monthly package total shown for reference.</p>
         </section>
 
         <section className="grid gap-4 md:grid-cols-3">
@@ -90,8 +93,10 @@ export const RateCardPage: React.FC = () => {
               {!pkg.badge && <div className="mb-3 h-[22px]" />}
               <h2 className="text-lg font-extrabold capitalize text-white">{pkg.name}</h2>
               <div className="mt-3 text-center">
-                <div className="text-3xl font-black tracking-tight text-teal-300">{pkg.price}</div>
-                <div className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Per month</div>
+                <div className="text-4xl font-black tracking-tight text-teal-300">{pkg.dailyPerScreen}</div>
+                <div className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-teal-200">Per screen / day</div>
+                <div className="mt-3 text-lg font-bold text-white">{pkg.price}</div>
+                <div className="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Monthly package total</div>
               </div>
               <div className="my-4 rounded-xl bg-slate-800/80 p-3 text-center">
                 <div className="text-xs font-bold leading-5 text-slate-100">{pkg.screens}</div>
@@ -145,7 +150,8 @@ export const RateCardPage: React.FC = () => {
         </section>
 
         <footer className="rate-card-footer mt-5 space-y-1 text-[10px] leading-4 text-slate-400">
-          <p>• Package prices are monthly and cover the selected number of screens.</p>
+          <p>• Daily per-screen figures are approximate, calculated using the monthly package price ÷ screen count ÷ 30 days.</p>
+          <p>• Monthly package total is the billed amount for the selected screen coverage.</p>
           <p>• Prime means highest-footfall venues (estimated 1,000–2,000 people); footfall figures are estimates, not guaranteed impressions.</p>
           <p>• Add-ons are optional and subject to screen and venue availability.</p>
           <p>• You share your offer and logo; we design the ad and confirm it plays correctly before billing starts.</p>
