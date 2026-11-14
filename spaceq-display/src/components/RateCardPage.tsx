@@ -13,8 +13,8 @@ const packages = [
   },
   {
     name: 'Growth',
-    price: '₹9,847',
-    dailyPerScreen: '₹32.82',
+    price: '₹9,497',
+    dailyPerScreen: '₹31.66',
     screens: '10 screens',
     billing: 'Monthly advance',
     badge: 'MOST POPULAR',
@@ -22,8 +22,8 @@ const packages = [
   },
   {
     name: 'Premium',
-    price: '₹14,897',
-    dailyPerScreen: '₹33.10',
+    price: '₹13,947',
+    dailyPerScreen: '₹30.99',
     screens: '15 screens',
     billing: 'Monthly advance',
     badge: 'BEST COVERAGE',
