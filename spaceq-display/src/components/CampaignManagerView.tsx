@@ -27,6 +27,7 @@ interface CampaignRecord {
   totalGuaranteedPlays: number;
   completedPlays?: number;
   allocations?: { screenId: string; networkPlays: number; screenSpecificPlays: number; totalGuaranteedPlays: number }[];
+  selectedScreenIds?: string[];
   creativeUrl: string;
   creativeDurationSeconds: number;
   createdAt?: any;
@@ -108,6 +109,46 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
       setSuccess('Capacity saved for ' + device.name + '.');
     } catch (err: any) { setError(err.message || 'Could not save screen capacity.'); }
     finally { setBusy(false); }
+  };
+
+  const changeCampaignStatus = async (campaign: CampaignRecord, action: 'pause' | 'resume' | 'cancel') => {
+    setBusy(true); setError(''); setSuccess('');
+    try {
+      if (action === 'cancel' && !window.confirm('Cancel this campaign and release its remaining reserved inventory?')) return;
+      const nextStatus = action === 'pause' ? 'paused' : action === 'resume' ? 'scheduled' : 'cancelled';
+      const ids = campaign.allocations?.map(item => item.screenId) || campaign.selectedScreenIds || [];
+      await runTransaction(db, async transaction => {
+        const campaignRef = doc(db, 'campaigns', campaign.id);
+        const campaignSnap = await transaction.get(campaignRef);
+        if (!campaignSnap.exists() || campaignSnap.data().businessId !== businessId) throw new Error('Campaign not found in this business.');
+        const schedules = await Promise.all(ids.map(id => transaction.get(doc(db, 'campaignSchedules', campaign.id + '_' + id))));
+        const inventories = action === 'cancel'
+          ? await Promise.all(ids.map(id => transaction.get(doc(db, 'campaignInventory', id))))
+          : [];
+        if (action === 'cancel') {
+          schedules.forEach((scheduleSnap, index) => {
+            if (!scheduleSnap.exists() || !inventories[index].exists()) return;
+            const schedule = scheduleSnap.data();
+            const inventory = inventories[index].data();
+            if (inventory?.businessId !== businessId) throw new Error('Inventory ownership mismatch.');
+            const reserved = { ...(inventory?.reservedPlaysByDate || {}) };
+            Object.entries(schedule.datePlays || {}).forEach(([date, plays]) => {
+              reserved[date] = Math.max(0, (Number(reserved[date]) || 0) - Number(plays || 0));
+            });
+            transaction.update(doc(db, 'campaignInventory', ids[index]), { reservedPlaysByDate: reserved, updatedAt: serverTimestamp() });
+            transaction.update(doc(db, 'campaignSchedules', campaign.id + '_' + ids[index]), { status: 'cancelled', updatedAt: serverTimestamp() });
+          });
+        } else {
+          schedules.forEach((snap, index) => {
+            if (snap.exists()) transaction.update(doc(db, 'campaignSchedules', campaign.id + '_' + ids[index]), { status: nextStatus === 'paused' ? 'paused' : 'published', updatedAt: serverTimestamp() });
+          });
+        }
+        transaction.update(campaignRef, { status: nextStatus, updatedAt: serverTimestamp(), ...(action === 'cancel' ? { cancelledAt: serverTimestamp() } : {}) });
+      });
+      setSuccess(action === 'cancel' ? 'Campaign cancelled and reserved inventory released.' : action === 'pause' ? 'Campaign paused.' : 'Campaign resumed.');
+    } catch (err: any) {
+      setError(err.message || 'Could not update campaign status.');
+    } finally { setBusy(false); }
   };
 
   const createCampaign = async (event: React.FormEvent) => {
@@ -288,6 +329,16 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
               <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className={'font-bold ' + text}>{campaign.name}</h3><p className={'text-xs ' + muted}>{campaign.advertiserName} · {campaign.bookingType} · {campaign.startDate} to {campaign.endDate}</p></div><span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold uppercase text-blue-400">{campaign.status}</span></div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-xs"><div><p className={muted}>Guaranteed</p><p className={'font-bold ' + text}>{campaign.totalGuaranteedPlays.toLocaleString('en-IN')}</p></div><div><p className={muted}>Completed</p><p className={'font-bold ' + text}>{(campaign.completedPlays || 0).toLocaleString('en-IN')}</p></div><div><p className={muted}>Delivery</p><p className={'font-bold ' + text}>{rate}%</p></div></div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-700"><div className="h-full rounded-full bg-emerald-500" style={{ width: rate + '%' }}/></div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {campaign.status !== 'cancelled' && campaign.status !== 'completed' && (
+                  <>
+                    {campaign.status === 'paused'
+                      ? <button disabled={busy} onClick={() => void changeCampaignStatus(campaign, 'resume')} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white">Resume</button>
+                      : <button disabled={busy} onClick={() => void changeCampaignStatus(campaign, 'pause')} className="rounded-lg bg-amber-600 px-3 py-1.5 text-[11px] font-bold text-white">Pause</button>}
+                    <button disabled={busy} onClick={() => void changeCampaignStatus(campaign, 'cancel')} className="rounded-lg bg-rose-700 px-3 py-1.5 text-[11px] font-bold text-white">Cancel & release inventory</button>
+                  </>
+                )}
+              </div>
               <p className={'mt-2 text-[10px] ' + muted}>Campaign ID: {campaign.id}</p>
             </div>;
           })}
