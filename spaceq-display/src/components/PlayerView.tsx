@@ -127,7 +127,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
       const activeMascot = globalMascot?.enabled ? globalMascot : selectedMascot;
       setMascotConfig(activeMascot?.enabled ? activeMascot : null);
 
-      // QR information campaigns use their own device assignment list.
       // Global QR stays the master; otherwise a device-selected QR can run.
       const selectedQr = Array.isArray(deviceConfig?.qr?.deviceIds)
         && deviceConfig.qr.deviceIds.includes(device.id)
@@ -433,8 +432,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                     zoneLabel={isSplit ? `Zone ${i + 1}` : undefined}
                     onStatusChange={i === 0 ? setPrimaryStatus : undefined}
                     onPlaybackStart={i === 0 ? onPlaybackStart : undefined}
-                    campaigns={i === 0 ? campaigns : []}
-                    onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
                   />
                 </div>
               </React.Fragment>
