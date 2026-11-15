@@ -16,8 +16,7 @@ import {
   Rocket,
   MessageSquareText,
   Megaphone,
-  Radio,
-  PanelsTopLeft
+  Radio
 } from 'lucide-react';
 import { roleLabel } from '../lib/permissions';
 
