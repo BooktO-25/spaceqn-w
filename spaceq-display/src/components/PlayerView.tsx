@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Device, Playlist, ContentItem } from '../types';
 import { getLayoutTemplate } from '../data/layoutTemplates';
 import { PlayerPane } from './PlayerPane';
-import { CampaignPlaybackOverlay } from './CampaignPlaybackOverlay';
-import { isBroadcastActive } from '../lib/scheduling';
 import { QrDisplayOverlay } from './QrDisplayOverlay';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -26,7 +24,6 @@ interface PlayerViewProps {
    * (2 or 3) for a split-layout device — see resolveAllPanePlaylistIds(). */
   panePlaylists: (Playlist | undefined)[];
   contents: ContentItem[];
-  activeCampaigns?: any[];
   onHeartbeat: (deviceId: string) => void;
   onExitPlayer?: () => void;
   darkMode: boolean;
@@ -42,7 +39,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   device,
   panePlaylists,
   contents,
-  activeCampaigns = [],
   onHeartbeat,
   onExitPlayer,
   darkMode,
@@ -58,7 +54,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   const [cubeConfig, setCubeConfig] = useState<any>(null);
   const [mascotConfig, setMascotConfig] = useState<any>(null);
   const [qrConfig, setQrConfig] = useState<any>(null);
-  const [campaignIsPlaying, setCampaignIsPlaying] = useState(false);
 
   // Shared ticker subscription: this component powers both the dashboard
   // live preview and the physical kiosk display.
@@ -584,16 +579,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
           />
         )}
 
-        {kioskMode && activeCampaigns.length > 0 && (
-          <CampaignPlaybackOverlay
-            deviceId={device.id}
-            businessId={device.businessId}
-            campaigns={activeCampaigns}
-            contents={contents}
-            suspended={isBroadcastActive(device)}
-            onPlayingChange={setCampaignIsPlaying}
-          />
-        )}
+
       </div>
 
       {/* Bottom Status Ticker — dashboard preview only */}
