@@ -373,6 +373,9 @@ export const KioskDisplay: React.FC = () => {
     campaignId: string; creativeUrl: string; startedAt: string; completedAt: string; actualDurationSeconds: number;
   }) => {
     if (!deviceId) return;
+    setCampaigns(current => current.map(item => item.campaignId === event.campaignId
+      ? { ...item, completedPlays: Math.min(item.plannedPlays, item.completedPlays + 1) }
+      : item).filter(item => item.completedPlays < item.plannedPlays));
     const payload = { ...event, deviceId, eventId: crypto.randomUUID() };
     const queueKey = 'spaceq_campaign_event_queue_v1';
     try {
