@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  addDoc, collection, doc, onSnapshot, query, runTransaction, serverTimestamp, where
+  addDoc, arrayUnion, collection, doc, onSnapshot, query, runTransaction, serverTimestamp, where
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Device, Location } from '../types';
@@ -94,7 +94,7 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
       ['Completed plays (trusted events only)', String(campaign.completedPlays || 0)],
       ['Remaining plays', String(Math.max(0, (campaign.totalGuaranteedPlays || 0) - (campaign.completedPlays || 0)))],
       ['Delivery percentage', getDeliveryRate(campaign.totalGuaranteedPlays || 0, campaign.completedPlays || 0) + '%'],
-      ['Evidence status', 'No trusted player proof-of-play ingestion configured; completed count is not independently verified']
+      ['Evidence status', 'Device-reported browser playback events; not hardware-attested proof of physical screen visibility']
     ];
     const csv = rows.map(row => row.map(value => '"' + String(value).replace(/"/g, '""') + '"').join(',')).join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -252,6 +252,14 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
           remainingPlays: item.totalGuaranteedPlays, status: 'reserved',
           createdAt: serverTimestamp()
         }));
+
+        selectedScreenIds.forEach(screenId => {
+          transaction.set(doc(db, 'deviceCampaignIndex', screenId), {
+            businessId,
+            campaignIds: arrayUnion(campaignRef.id),
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        });
 
         scheduleRefs.forEach(({ item, ref }) => {
           const daily = plan.schedules.filter(schedule => schedule.screenId === item.screenId);
