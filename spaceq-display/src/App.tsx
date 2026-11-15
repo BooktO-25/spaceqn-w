@@ -28,9 +28,6 @@ import { PlayerView } from './components/PlayerView';
 import { TeamView } from './components/TeamView';
 import { AnnouncementView } from './components/AnnouncementView';
 import { FeatureEditorView } from './components/FeatureEditorView';
-import { CampaignHubView } from './components/CampaignHubView';
-import { CampaignDeploymentView } from './components/CampaignDeploymentView';
-import { PublicCampaignReport } from './components/PublicCampaignReport';
 import { SuperAdminConsole } from './components/SuperAdminConsole';
 import { ShieldOff } from 'lucide-react';
 import { useOfflineAlerts, notificationsGranted, requestNotificationPermission } from './lib/useOfflineAlerts';
@@ -670,15 +667,7 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
               onLaunchPlayer={(id) => setPlayerDeviceId(id)}
               darkMode={darkMode}
             />
-          )}
-
-          {activeTab === 'campaigns' && selectedBusiness && (
-            <CampaignHubView businessId={selectedBusiness.id} devices={bizDevices} contents={contents.filter(c => c.businessId === selectedBusiness.id)} darkMode={darkMode} />
-          )}
-
-          {activeTab === 'campaign-deployment' && selectedBusiness && (
-            <CampaignDeploymentView businessId={selectedBusiness.id} devices={bizDevices} contents={contents.filter(c => c.businessId === selectedBusiness.id)} darkMode={darkMode} />
-          )}
+          )}  
 
           {activeTab === 'content' && (
             <ContentLibraryView
@@ -748,8 +737,6 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
 }
 
 export default function App({ isAdminEntrance = false }: { isAdminEntrance?: boolean }) {
-  const reportParams = new URLSearchParams(window.location.search);
-  if (reportParams.has('campaignReport')) return <PublicCampaignReport campaignId={reportParams.get('campaignReport') || ''} token={reportParams.get('token') || ''} />;
   return (
     <AuthProvider>
       <MainApplication isAdminEntrance={isAdminEntrance} />
