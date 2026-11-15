@@ -73,11 +73,18 @@ export const CampaignPlaybackOverlay: React.FC<Props> = ({
       if (latenessSeconds < 0 || latenessSeconds > 15) continue;
 
       const slotKey = `spaceq_campaign_slot_${campaign.id}_${deviceId}_${localDate(now)}_${slotIndex}`;
-      if (localStorage.getItem(slotKey)) continue;
+      const slotMarker = localStorage.getItem(slotKey);
+      if (slotMarker === 'completed' || slotMarker === 'unconfirmed') continue;
+      if (slotMarker?.startsWith('started:')) {
+        const previousStart = Number(slotMarker.slice('started:'.length));
+        // If the kiosk reloaded or crashed during an ad, let the missed slot
+        // retry after the expected playback plus a short safety margin.
+        if (Number.isFinite(previousStart) && Date.now() - previousStart < (durationSeconds + 60) * 1000) continue;
+      }
       const content = contents.find(item => item.id === campaign.contentId);
       if (!content) continue;
 
-      localStorage.setItem(slotKey, 'started');
+      localStorage.setItem(slotKey, `started:${Date.now()}`);
       setPlaying({ campaign, content, startedAt: new Date().toISOString(), slotKey });
       break;
     }
