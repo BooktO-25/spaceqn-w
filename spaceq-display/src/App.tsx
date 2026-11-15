@@ -27,7 +27,6 @@ import { PlaylistBuilderView } from './components/PlaylistBuilderView';
 import { PlayerView } from './components/PlayerView';
 import { TeamView } from './components/TeamView';
 import { AnnouncementView } from './components/AnnouncementView';
-import { CampaignManagerView } from './components/CampaignManagerView';
 import { FeatureEditorView } from './components/FeatureEditorView';
 import { SuperAdminConsole } from './components/SuperAdminConsole';
 import { ShieldOff } from 'lucide-react';
@@ -691,14 +690,6 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
             />
           )}
 
-          {activeTab === 'campaigns' && selectedBusiness && (
-            <CampaignManagerView
-              businessId={selectedBusiness.id}
-              devices={bizDevices}
-              locations={locations.filter(location => location.businessId === selectedBusiness.id)}
-              darkMode={darkMode}
-            />
-          )}
 
           {activeTab === 'scrolling' && selectedBusiness && (
             <FeatureEditorView businessId={selectedBusiness.id} devices={bizDevices} darkMode={darkMode} />
