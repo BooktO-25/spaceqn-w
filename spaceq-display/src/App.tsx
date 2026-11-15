@@ -195,26 +195,15 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
     assignedPlaylistIds?: string[]
   ) => {
     if (!user || !selectedBusiness) throw new Error('Sign in and select a business before pairing a display.');
-    const idToken = await user.getIdToken();
-    const claimResponse = await fetch('/api/devices/claim', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({
-        code,
-        name,
-        locationId,
-        playlistId,
-        assignedPlaylistIds: assignedPlaylistIds && assignedPlaylistIds.length ? assignedPlaylistIds : [playlistId],
-        orientation,
-        businessId: selectedBusiness.id,
-      }),
-    });
-    const claimResult = await claimResponse.json().catch(() => ({}));
-    if (!claimResponse.ok) {
-      throw new Error(claimResult.error || 'Could not pair this display. Please retry.');
+    // Pair directly through the signed-in Firestore session. The device
+    // document is created by the TV with its six-digit code; dashboard rules
+    // allow its owner to claim that one unclaimed document.
+    const deviceRef = doc(db, 'devices', code);
+    const deviceSnapshot = await getDoc(deviceRef);
+    if (!deviceSnapshot.exists()) throw new Error('No display found with that pairing code.');
+    const currentDevice = deviceSnapshot.data();
+    if (currentDevice.status !== 'PAIRING' || currentDevice.businessId) {
+      throw new Error('This pairing code has already been used. Refresh the TV to get a new code.');
     }
 
     const updated: Partial<Device> = {
@@ -235,6 +224,7 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
       lastSeenAt: new Date().toISOString(),
       tags: ['New Display', orientation],
     };
+    await updateDoc(deviceRef, updated as Record<string, unknown>);
     const claimedDevice: Device = { id: code, pairingCode: code, ...updated } as Device;
     setDevices(prev => [claimedDevice, ...prev.filter(d => d.id !== code)]);
 
