@@ -1,5 +1,5 @@
 import { authenticateDevice } from '../_lib/deviceAuth';
-import { firestoreCommit, firestoreRequest } from '../_lib/firebaseAdmin';
+import { firestoreCommit, firestoreRequest, getFirebaseProjectId } from '../_lib/firebaseAdmin';
 
 interface RequestLike { method?: string; headers?: Record<string, string | string[] | undefined>; body?: unknown }
 interface ResponseLike { status(code: number): ResponseLike; json(body: unknown): void }
@@ -41,7 +41,7 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     const startedAt = typeof body.startedAt === 'string' ? body.startedAt : '';
     const completedAt = typeof body.completedAt === 'string' ? body.completedAt : '';
     const actualDurationSeconds = Number(body.actualDurationSeconds);
-    if (!/^[a-f0-9-]{36}$/i.test(eventId) || !/^[A-Za-z0-9_-]{1,128}$/.test(campaignId) ||
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(eventId) || !/^[A-Za-z0-9_-]{1,128}$/.test(campaignId) ||
         !creativeUrl || creativeUrl.length > 2048 || !startedAt || !completedAt) {
       return res.status(400).json({ ok: false, error: 'Playback event is missing required fields.' });
     }
@@ -89,8 +89,7 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
       return res.status(403).json({ ok: false, error: 'No active campaign plays are scheduled for this screen today.' });
     }
 
-    const projectId = process.env.FIREBASE_PROJECT_ID || '';
-    if (!projectId) throw new Error('FIREBASE_PROJECT_ID is not configured.');
+    const projectId = getFirebaseProjectId();
     const dailyId = `${campaignId}_${deviceId}_${day}`;
     const dailyResponse = await firestoreRequest(`campaignDailyDelivery/${encodeURIComponent(dailyId)}`);
     let dailyCompleted = 0;
