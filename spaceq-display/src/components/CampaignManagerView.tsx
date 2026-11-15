@@ -81,6 +81,31 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
     return () => unsubs.forEach(unsub => unsub());
   }, [eligibleDevices]);
 
+  const exportCampaignReport = (campaign: CampaignRecord) => {
+    const rows = [
+      ['Campaign ID', campaign.id],
+      ['Campaign', campaign.name],
+      ['Advertiser', campaign.advertiserName],
+      ['Booking model', campaign.bookingType],
+      ['Status', campaign.status],
+      ['Start date', campaign.startDate],
+      ['End date', campaign.endDate],
+      ['Guaranteed plays', String(campaign.totalGuaranteedPlays || 0)],
+      ['Completed plays (trusted events only)', String(campaign.completedPlays || 0)],
+      ['Remaining plays', String(Math.max(0, (campaign.totalGuaranteedPlays || 0) - (campaign.completedPlays || 0)))],
+      ['Delivery percentage', getDeliveryRate(campaign.totalGuaranteedPlays || 0, campaign.completedPlays || 0) + '%'],
+      ['Evidence status', 'No trusted player proof-of-play ingestion configured; completed count is not independently verified']
+    ];
+    const csv = rows.map(row => row.map(value => '"' + String(value).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'campaign-' + campaign.id + '-report.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const toggleScreen = (id: string) => {
     setSelectedScreenIds(prev => prev.includes(id) ? prev.filter(value => value !== id) : [...prev, id]);
   };
@@ -330,6 +355,7 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
               <div className="mt-3 grid grid-cols-3 gap-2 text-xs"><div><p className={muted}>Guaranteed</p><p className={'font-bold ' + text}>{campaign.totalGuaranteedPlays.toLocaleString('en-IN')}</p></div><div><p className={muted}>Completed</p><p className={'font-bold ' + text}>{(campaign.completedPlays || 0).toLocaleString('en-IN')}</p></div><div><p className={muted}>Delivery</p><p className={'font-bold ' + text}>{rate}%</p></div></div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-700"><div className="h-full rounded-full bg-emerald-500" style={{ width: rate + '%' }}/></div>
               <div className="mt-3 flex flex-wrap gap-2">
+                <button disabled={busy} onClick={() => exportCampaignReport(campaign)} className="rounded-lg bg-slate-700 px-3 py-1.5 text-[11px] font-bold text-white">Export CSV report</button>
                 {campaign.status !== 'cancelled' && campaign.status !== 'completed' && (
                   <>
                     {campaign.status === 'paused'
