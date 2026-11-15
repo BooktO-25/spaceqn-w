@@ -293,6 +293,66 @@ service cloud.firestore {
     }
 
 
+    // DOOH campaign inventory and schedule records. Client-side writes are
+    // tenant-scoped and role-gated; authoritative player proof-of-play writes
+    // must be introduced through a trusted server endpoint before production.
+    match /campaignInventory/{screenId} {
+      allow read: if isSignedIn() && (isSuperAdmin()
+        || isRegionalAdminForBusiness(resource.data.businessId)
+        || getUserBusinessId() == resource.data.businessId);
+      allow create: if isSignedIn()
+        && request.resource.data.businessId is string
+        && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId)
+          || (canManageDevices() && getUserBusinessId() == request.resource.data.businessId));
+      allow update: if isSignedIn()
+        && request.resource.data.businessId == resource.data.businessId
+        && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId)
+          || (canManageDevices() && getUserBusinessId() == resource.data.businessId));
+      allow delete: if isSuperAdmin()
+        || (isSignedIn() && isRegionalAdminForBusiness(resource.data.businessId));
+    }
+
+    match /campaignAllocations/{allocationId} {
+      allow read: if isSignedIn() && (isSuperAdmin()
+        || isRegionalAdminForBusiness(resource.data.businessId)
+        || getUserBusinessId() == resource.data.businessId);
+      allow create: if isSignedIn()
+        && request.resource.data.businessId is string
+        && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId)
+          || (canManageContent() && getUserBusinessId() == request.resource.data.businessId));
+      allow update: if isSignedIn()
+        && request.resource.data.businessId == resource.data.businessId
+        && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId)
+          || (canManageContent() && getUserBusinessId() == resource.data.businessId));
+      allow delete: if isSuperAdmin()
+        || (isSignedIn() && isRegionalAdminForBusiness(resource.data.businessId));
+    }
+
+    match /campaignSchedules/{scheduleId} {
+      allow read: if isSignedIn() && (isSuperAdmin()
+        || isRegionalAdminForBusiness(resource.data.businessId)
+        || getUserBusinessId() == resource.data.businessId);
+      allow create: if isSignedIn()
+        && request.resource.data.businessId is string
+        && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId)
+          || (canManageContent() && getUserBusinessId() == request.resource.data.businessId));
+      allow update: if isSignedIn()
+        && request.resource.data.businessId == resource.data.businessId
+        && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId)
+          || (canManageContent() && getUserBusinessId() == resource.data.businessId));
+      allow delete: if isSuperAdmin()
+        || (isSignedIn() && isRegionalAdminForBusiness(resource.data.businessId));
+    }
+
+    match /playbackEvents/{eventId} {
+      allow read: if isSignedIn() && (isSuperAdmin()
+        || isRegionalAdminForBusiness(resource.data.businessId)
+        || getUserBusinessId() == resource.data.businessId);
+      // No unauthenticated kiosk writes: proof-of-play ingestion needs a
+      // trusted device-authenticated API and idempotency validation.
+      allow create, update, delete: if false;
+    }
+
     match /activityLogs/{logId} {
       allow read: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId) || getUserBusinessId() == resource.data.businessId);
       allow create: if isSignedIn() && (isSuperAdmin() || isRegionalAdminForBusiness(request.resource.data.businessId) || getUserBusinessId() == request.resource.data.businessId);
