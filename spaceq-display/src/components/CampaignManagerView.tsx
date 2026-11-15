@@ -36,7 +36,7 @@ interface CampaignRecord {
 const fieldClass = 'w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-rose-500';
 const buttonClass = 'inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50';
 
-export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ businessId, devices, locations, darkMode }) => {
+const CampaignManagerViewContent: React.FC<CampaignManagerViewProps> = ({ businessId, devices, locations, darkMode }) => {
   const { userProfile } = useAuth();
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
   const [campaignsLoading, setCampaignsLoading] = useState(true);
@@ -392,3 +392,40 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
     </div>
   );
 };
+
+
+/**
+ * Isolate campaign UI failures so a malformed legacy booking or transient
+ * rendering issue cannot blank the entire dashboard.
+ */
+export class CampaignManagerView extends React.Component<CampaignManagerViewProps, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('DOOH Campaign page failed to render:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="mx-auto max-w-4xl p-6 lg:p-8">
+          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6">
+            <h2 className="text-lg font-bold text-rose-400">DOOH Campaigns could not be displayed</h2>
+            <p className="mt-2 text-sm text-slate-400">The rest of your dashboard is still available. Reload this section to try again.</p>
+            <button
+              className="mt-4 rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white"
+              onClick={() => this.setState({ hasError: false })}
+            >
+              Retry campaign page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return <CampaignManagerViewContent {...this.props} />;
+  }
+}
