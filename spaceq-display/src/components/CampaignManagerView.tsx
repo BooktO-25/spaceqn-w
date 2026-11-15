@@ -39,6 +39,7 @@ const buttonClass = 'inline-flex items-center justify-center gap-2 rounded-xl bg
 export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ businessId, devices, locations, darkMode }) => {
   const { userProfile } = useAuth();
   const [campaigns, setCampaigns] = useState<CampaignRecord[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [capacities, setCapacities] = useState<Record<string, number>>({});
   const [capacityInputs, setCapacityInputs] = useState<Record<string, string>>({});
   const [name, setName] = useState('');
@@ -64,9 +65,26 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
   useEffect(() => {
     const campaignQuery = query(collection(db, 'campaigns'), where('businessId', '==', businessId));
     return onSnapshot(campaignQuery, snapshot => {
-      setCampaigns(snapshot.docs.map(item => ({ id: item.id, ...item.data() } as CampaignRecord))
-        .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
-    }, err => setError(err.message));
+      setCampaigns(snapshot.docs.map(item => {
+        const data = item.data() as Partial<CampaignRecord>;
+        return {
+          ...data,
+          id: item.id,
+          businessId: String(data.businessId || businessId),
+          name: String(data.name || 'Untitled campaign'),
+          advertiserName: String(data.advertiserName || '—'),
+          bookingType: data.bookingType || 'hybrid',
+          status: String(data.status || 'unknown'),
+          startDate: String(data.startDate || ''),
+          endDate: String(data.endDate || ''),
+          totalGuaranteedPlays: Number(data.totalGuaranteedPlays) || 0,
+          completedPlays: Number(data.completedPlays) || 0,
+          creativeUrl: String(data.creativeUrl || ''),
+          creativeDurationSeconds: Number(data.creativeDurationSeconds) || 15,
+        } as CampaignRecord;
+      }).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
+      setCampaignsLoading(false);
+    }, err => { setError('Could not load campaign bookings: ' + err.message); setCampaignsLoading(false); });
   }, [businessId]);
 
   useEffect(() => {
@@ -352,7 +370,7 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
             const rate = getDeliveryRate(campaign.totalGuaranteedPlays, campaign.completedPlays || 0);
             return <div key={campaign.id} className={'rounded-xl border p-4 ' + (darkMode ? 'border-slate-700' : 'border-slate-200')}>
               <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className={'font-bold ' + text}>{campaign.name}</h3><p className={'text-xs ' + muted}>{campaign.advertiserName} · {campaign.bookingType} · {campaign.startDate} to {campaign.endDate}</p></div><span className="rounded-full bg-blue-500/10 px-2.5 py-1 text-[10px] font-bold uppercase text-blue-400">{campaign.status}</span></div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-xs"><div><p className={muted}>Guaranteed</p><p className={'font-bold ' + text}>{campaign.totalGuaranteedPlays.toLocaleString('en-IN')}</p></div><div><p className={muted}>Completed</p><p className={'font-bold ' + text}>{(campaign.completedPlays || 0).toLocaleString('en-IN')}</p></div><div><p className={muted}>Delivery</p><p className={'font-bold ' + text}>{rate}%</p></div></div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs"><div><p className={muted}>Guaranteed</p><p className={'font-bold ' + text}>{(Number(campaign.totalGuaranteedPlays) || 0).toLocaleString('en-IN')}</p></div><div><p className={muted}>Completed</p><p className={'font-bold ' + text}>{(campaign.completedPlays || 0).toLocaleString('en-IN')}</p></div><div><p className={muted}>Delivery</p><p className={'font-bold ' + text}>{rate}%</p></div></div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-700"><div className="h-full rounded-full bg-emerald-500" style={{ width: rate + '%' }}/></div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button disabled={busy} onClick={() => exportCampaignReport(campaign)} className="rounded-lg bg-slate-700 px-3 py-1.5 text-[11px] font-bold text-white">Export CSV report</button>
@@ -368,7 +386,7 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
               <p className={'mt-2 text-[10px] ' + muted}>Campaign ID: {campaign.id}</p>
             </div>;
           })}
-          {!campaigns.length && <p className={'py-8 text-center text-sm ' + muted}>No campaigns created for this business yet.</p>}
+          {campaignsLoading ? <p className={'py-8 text-center text-sm ' + muted}>Loading campaign bookings…</p> : !campaigns.length && <p className={'py-8 text-center text-sm ' + muted}>No campaigns created for this business yet.</p>}
         </div>
       </section>
     </div>
