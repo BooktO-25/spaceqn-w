@@ -5,6 +5,8 @@ import { toYouTubeEmbedUrl } from '../lib/youtubeEmbed';
 import { optimizeMediaUrl, cacheBustMediaUrl } from '../lib/mediaOptimize';
 import { PageContentRenderer } from './PageContentRenderer';
 
+export interface CampaignAd { campaignId: string; name: string; creativeUrl: string; durationSeconds: number; plannedPlays: number; completedPlays: number; }
+
 interface PlayerPaneProps {
   playlist?: Playlist;
   contents: ContentItem[];
@@ -18,12 +20,18 @@ interface PlayerPaneProps {
    * used by the real kiosk to record playback telemetry. Not used by the
    * dashboard preview. */
   onPlaybackStart?: (event: { contentId: string; title: string; durationSeconds: number }) => void;
+  campaigns?: CampaignAd[];
+  onCampaignComplete?: (event: { campaignId: string; creativeUrl: string; startedAt: string; completedAt: string; actualDurationSeconds: number }) => void;
 }
 
-export const PlayerPane: React.FC<PlayerPaneProps> = ({ playlist, contents, onStatusChange, zoneLabel, onPlaybackStart }) => {
+export const PlayerPane: React.FC<PlayerPaneProps> = ({ playlist, contents, onStatusChange, zoneLabel, onPlaybackStart, campaigns = [], onCampaignComplete }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playbackOrder, setPlaybackOrder] = useState<number[]>([]);
   const [orderCursor, setOrderCursor] = useState(0);
+  const [activeCampaign, setActiveCampaign] = useState<CampaignAd | null>(null);
+  const [campaignCursor, setCampaignCursor] = useState(0);
+  const [playlistPlaysSinceAd, setPlaylistPlaysSinceAd] = useState(0);
+  const campaignStartedAtRef = useRef<number>(0);
 
   const playlistItems = playlist?.items || [];
 
@@ -64,6 +72,7 @@ export const PlayerPane: React.FC<PlayerPaneProps> = ({ playlist, contents, onSt
     activePlaylistItem?.customDurationSeconds || activeContent?.durationSeconds || 10
   );
 
+  const playbackDurationSeconds = activeCampaign?.durationSeconds || currentDurationSeconds;
   const framing = activePlaylistItem?.framing;
   const mediaFrameStyle: React.CSSProperties = framing ? {
     objectFit: framing.fit === 'CONTAIN' ? 'contain' : 'cover',
@@ -136,10 +145,34 @@ export const PlayerPane: React.FC<PlayerPaneProps> = ({ playlist, contents, onSt
   // Auto-advance. Loop and Shuffle are real playlist controls: shuffle creates
   // a randomized pass, and loop starts a fresh pass when the current pass ends.
   useEffect(() => {
+    if (activeCampaign) {
+      const timer = setTimeout(() => {
+        const completedAtMs = Date.now();
+        const startedAtMs = campaignStartedAtRef.current || (completedAtMs - activeCampaign.durationSeconds * 1000);
+        onCampaignComplete?.({
+          campaignId: activeCampaign.campaignId,
+          creativeUrl: activeCampaign.creativeUrl,
+          startedAt: new Date(startedAtMs).toISOString(),
+          completedAt: new Date(completedAtMs).toISOString(),
+          actualDurationSeconds: Math.max(0.1, (completedAtMs - startedAtMs) / 1000),
+        });
+        setActiveCampaign(null);
+      }, playbackDurationSeconds * 1000);
+      return () => clearTimeout(timer);
+    }
     if (playlistItems.length === 0 || playbackOrder.length === 0) return;
     if (playlist?.loop === false && orderCursor >= playbackOrder.length - 1) return;
 
     const timer = setTimeout(() => {
+      if (campaigns.length > 0 && playlistPlaysSinceAd >= 4) {
+        const selected = campaigns[campaignCursor % campaigns.length];
+        setActiveCampaign(selected);
+        campaignStartedAtRef.current = Date.now();
+        setCampaignCursor(value => value + 1);
+        setPlaylistPlaysSinceAd(0);
+        return;
+      }
+      setPlaylistPlaysSinceAd(value => value + 1);
       let nextOrder = playbackOrder;
       let nextCursor = orderCursor + 1;
 
@@ -157,7 +190,7 @@ export const PlayerPane: React.FC<PlayerPaneProps> = ({ playlist, contents, onSt
     }, currentDurationSeconds * 1000);
 
     return () => clearTimeout(timer);
-  }, [orderCursor, playbackOrder, playlistItems.length, currentDurationSeconds, playlist?.loop, playlist?.shuffle]);
+  }, [orderCursor, playbackOrder, playlistItems.length, playbackDurationSeconds, playlist?.loop, playlist?.shuffle, activeCampaign, campaigns, playlistPlaysSinceAd, campaignCursor, onCampaignComplete]);
 
   useEffect(() => {
     onStatusChange?.({
@@ -224,7 +257,15 @@ export const PlayerPane: React.FC<PlayerPaneProps> = ({ playlist, contents, onSt
         </div>
       )}
 
-      {activeContent ? (
+      {activeCampaign ? (
+        <div className="w-full h-full flex items-center justify-center bg-black">
+          {/\\.(mp4|webm|mov)(\\?|#|$)/i.test(activeCampaign.creativeUrl) ? (
+            <video key={activeCampaign.campaignId} src={activeCampaign.creativeUrl} autoPlay muted playsInline className="w-full h-full object-contain" />
+          ) : (
+            <img key={activeCampaign.campaignId} src={activeCampaign.creativeUrl} alt={activeCampaign.name} className="w-full h-full object-contain" />
+          )}
+        </div>
+      ) : activeContent ? (
         <div className="w-full h-full flex items-center justify-center relative">
           {activeContent.type === 'TEMPLATE' && activeContent.pageContent && (
             <div key={`${activeContent.id}:${activeContent.updatedAt || activeContent.url}`} className="w-full h-full transition-fade">
