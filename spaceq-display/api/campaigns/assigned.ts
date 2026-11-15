@@ -31,12 +31,24 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     if (!device) return res.status(401).json({ ok: false, error: 'Display credential is invalid.' });
 
     const day = indiaDate();
-    // Firestore REST has no collection-list query here; booking maintains a per-screen campaign index.
-    const indexResponse = await firestoreRequest(`deviceCampaignIndex/${encodeURIComponent(deviceId)}`);
-    if (indexResponse.status === 404) return res.status(200).json({ ok: true, date: day, campaigns: [] });
-    if (!indexResponse.ok) throw new Error('Could not load screen campaign index.');
-    const indexDoc = await indexResponse.json() as { fields?: Record<string, any> };
-    const ids = indexDoc.fields?.campaignIds?.arrayValue?.values || [];
+    const queryResponse = await firestoreRequest(':runQuery', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'campaignSchedules' }],
+          where: { fieldFilter: {
+            field: { fieldPath: 'screenId' },
+            op: 'EQUAL',
+            value: { stringValue: deviceId }
+          } },
+          limit: 100
+        }
+      })
+    });
+    if (!queryResponse.ok) throw new Error('Could not query screen campaign allocations.');
+    const queryRows = await queryResponse.json() as Array<{ document?: { fields?: Record<string, any> } }>;
+    const scheduleRows = queryRows.filter(row => row.document?.fields);
     const campaigns: Array<{ campaignId: string; name: string; creativeUrl: string; durationSeconds: number; plannedPlays: number; completedPlays: number }> = [];
 
     for (const entry of ids.slice(0, 100)) {
