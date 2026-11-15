@@ -297,7 +297,10 @@ service cloud.firestore {
     // tenant-scoped and role-gated; authoritative player proof-of-play writes
     // must be introduced through a trusted server endpoint before production.
     match /campaignInventory/{screenId} {
-      allow read: if isSignedIn() && (isSuperAdmin()
+      allow get: if isSignedIn() && (!exists(/databases/$(database)/documents/campaignInventory/$(screenId))
+        || isSuperAdmin() || isRegionalAdminForBusiness(resource.data.businessId)
+        || getUserBusinessId() == resource.data.businessId);
+      allow list: if isSignedIn() && (isSuperAdmin()
         || isRegionalAdminForBusiness(resource.data.businessId)
         || getUserBusinessId() == resource.data.businessId);
       allow create: if isSignedIn()
