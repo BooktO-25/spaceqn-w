@@ -8,8 +8,20 @@ import { Tv, Copy, CheckCircle2, Maximize } from 'lucide-react';
 import QRCode from 'qrcode';
 
 const STORAGE_KEY = 'spaceq_device_id';
+const DEVICE_TOKEN_KEY = 'spaceq_device_token_v1';
 const APP_VERSION = 'v2.2.2-kiosk';
 const OFFLINE_SNAPSHOT_KEY = 'spaceq_offline_cycle_v1';
+
+function generateDeviceToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function hashDeviceToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
 
 function generateCode(): string {
   // 6-digit numeric code, easy to read and type from across a room.
@@ -46,6 +58,7 @@ export const KioskDisplay: React.FC = () => {
   // Used only when the device is explicitly deleted/unpaired from the dashboard.
   const resetPairing = () => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(DEVICE_TOKEN_KEY);
     setDeviceId(null);
     setDevice(undefined);
     setAssignedPlaylists([]);
@@ -72,6 +85,9 @@ export const KioskDisplay: React.FC = () => {
 
     let cancelled = false;
     const create = async () => {
+      // Generate a per-install secret. Only its SHA-256 digest is stored remotely.
+      const deviceToken = generateDeviceToken();
+      const deviceTokenHash = await hashDeviceToken(deviceToken);
       // Extremely small chance of collision on a 6-digit code; retry a
       // couple of times with a fresh code if the doc somehow already exists.
       for (let attempt = 0; attempt < 5; attempt++) {
@@ -82,6 +98,7 @@ export const KioskDisplay: React.FC = () => {
           await setDoc(ref, {
             id: code,
             pairingCode: code,
+            deviceTokenHash,
             name: 'Unpaired Display',
             businessId: '',
             locationId: '',
@@ -96,6 +113,7 @@ export const KioskDisplay: React.FC = () => {
           }, { merge: false });
           if (cancelled) return;
           localStorage.setItem(STORAGE_KEY, code);
+          localStorage.setItem(DEVICE_TOKEN_KEY, deviceToken);
           setDeviceId(code);
           return;
         } catch (err) {
