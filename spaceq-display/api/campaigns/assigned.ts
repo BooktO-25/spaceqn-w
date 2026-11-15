@@ -31,11 +31,7 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     if (!device) return res.status(401).json({ ok: false, error: 'Display credential is invalid.' });
 
     const day = indiaDate();
-    const schedulesResponse = await firestoreRequest(`campaignSchedules/${encodeURIComponent('')}`);
-    // The Firestore REST API has no collection-list operation at this path.
-    // Campaign IDs are therefore supplied by the device's lightweight index
-    // document, maintained by the booking workflow.
-    if (schedulesResponse.ok) { /* reserved for forward-compatible index reads */ }
+    // Firestore REST has no collection-list query here; booking maintains a per-screen campaign index.
     const indexResponse = await firestoreRequest(`deviceCampaignIndex/${encodeURIComponent(deviceId)}`);
     if (indexResponse.status === 404) return res.status(200).json({ ok: true, date: day, campaigns: [] });
     if (!indexResponse.ok) throw new Error('Could not load screen campaign index.');
