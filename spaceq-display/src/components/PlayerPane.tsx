@@ -268,7 +268,7 @@ export const PlayerPane: React.FC<PlayerPaneProps> = ({ playlist, contents, onSt
 
       {activeCampaign ? (
         <div className="w-full h-full flex items-center justify-center bg-black">
-          {/\\.(mp4|webm|mov)(\\?|#|$)/i.test(activeCampaign.creativeUrl) ? (
+          {/\.(mp4|webm|mov)(\?|#|$)/i.test(activeCampaign.creativeUrl) ? (
             <video key={activeCampaign.campaignId} src={activeCampaign.creativeUrl} autoPlay muted playsInline className="w-full h-full object-contain" />
           ) : (
             <img key={activeCampaign.campaignId} src={activeCampaign.creativeUrl} alt={activeCampaign.name} className="w-full h-full object-contain" />
