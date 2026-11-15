@@ -46,6 +46,8 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
   darkMode,
   kioskMode = false,
   onPlaybackStart,
+  campaigns = [],
+  onCampaignComplete,
 }) => {
   const [isSimulatedOffline, setIsSimulatedOffline] = useState(false);
   const [heartbeatCounter, setHeartbeatCounter] = useState(30);
@@ -399,10 +401,8 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                         zoneLabel={`Zone ${i + 1}`}
                         onStatusChange={i === 0 ? setPrimaryStatus : undefined}
                         onPlaybackStart={i === 0 ? onPlaybackStart : undefined}
-                    campaigns={i === 0 ? campaigns : []}
-                    onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
                         campaigns={i === 0 ? campaigns : []}
-                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}\n                        campaigns={i === 0 ? campaigns : []}\n                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
+                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
                       />
                     </div>
                   ))}
