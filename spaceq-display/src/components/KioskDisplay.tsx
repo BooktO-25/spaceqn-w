@@ -384,10 +384,25 @@ export const KioskDisplay: React.FC = () => {
     if (!deviceId || !device) return;
     const beat = async () => {
       await flushPlaybackTelemetry(false);
-      updateDoc(doc(db, 'devices', deviceId), {
-        lastSeenAt: new Date().toISOString(),
-        status: device.businessId ? 'ONLINE' : 'PAIRING',
-      }).catch(err => console.warn('Heartbeat failed:', err));
+      const deviceToken = localStorage.getItem(DEVICE_TOKEN_KEY);
+      if (!deviceToken) {
+        console.warn('This display has no device credential. It must be re-paired before secure device services can be used.');
+        return;
+      }
+      fetch('/api/devices/heartbeat', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${deviceToken}`,
+        },
+        body: JSON.stringify({ deviceId }),
+      }).then(async response => {
+        if (response.status === 401) {
+          console.error('Device credential rejected. Re-pair this display.');
+          return;
+        }
+        if (!response.ok) throw new Error(`Heartbeat HTTP ${response.status}`);
+      }).catch(err => console.warn('Authenticated heartbeat failed:', err));
     };
     beat();
     const interval = setInterval(beat, 30000);
