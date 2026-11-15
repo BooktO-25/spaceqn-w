@@ -3,7 +3,6 @@ import { doc, onSnapshot, setDoc, updateDoc, increment } from 'firebase/firestor
 import { db } from '../lib/firebase';
 import { Device, Playlist, ContentItem } from '../types';
 import { PlayerView } from './PlayerView';
-import { CampaignAd } from './PlayerPane';
 import { resolveAllPanePlaylistIds, allAssignedPlaylistIds } from '../lib/scheduling';
 import { Tv, Copy, CheckCircle2, Maximize } from 'lucide-react';
 import QRCode from 'qrcode';
@@ -50,7 +49,6 @@ export const KioskDisplay: React.FC = () => {
   const [device, setDevice] = useState<Device | null | undefined>(undefined); // undefined = loading
   const [assignedPlaylists, setAssignedPlaylists] = useState<Playlist[]>([]);
   const [contents, setContents] = useState<ContentItem[]>([]);
-  const [campaigns, setCampaigns] = useState<CampaignAd[]>([]);
   const [now, setNow] = useState(() => new Date());
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -339,74 +337,6 @@ export const KioskDisplay: React.FC = () => {
     }
   }, [device?.businessId, contents]);
 
-  // Fetch only campaigns allocated to this authenticated display. The API
-  // enforces screen ownership, campaign dates, and remaining daily quota.
-  useEffect(() => {
-    if (!deviceId || !device?.businessId) { setCampaigns([]); return; }
-    let active = true;
-    const loadCampaigns = async () => {
-      const deviceToken = localStorage.getItem(DEVICE_TOKEN_KEY);
-      if (!deviceToken) return;
-      try {
-        const response = await fetch('/api/campaigns/assigned', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', authorization: `Bearer ${deviceToken}` },
-          body: JSON.stringify({ deviceId }),
-        });
-        if (response.status === 401) {
-          console.error('Campaign service rejected the display credential. Re-pair this display.');
-          return;
-        }
-        if (!response.ok) throw new Error(`Campaign lookup HTTP ${response.status}`);
-        const result = await response.json();
-        if (active && Array.isArray(result.campaigns)) setCampaigns(result.campaigns);
-      } catch (error) {
-        console.warn('Campaign schedule refresh failed; keeping the last known schedule:', error);
-      }
-    };
-    void loadCampaigns();
-    const interval = setInterval(loadCampaigns, 60000);
-    return () => { active = false; clearInterval(interval); };
-  }, [deviceId, device?.businessId]);
-
-  const handleCampaignComplete = (event: {
-    campaignId: string; creativeUrl: string; startedAt: string; completedAt: string; actualDurationSeconds: number;
-  }) => {
-    if (!deviceId) return;
-    setCampaigns(current => current.map(item => item.campaignId === event.campaignId
-      ? { ...item, completedPlays: Math.min(item.plannedPlays, item.completedPlays + 1) }
-      : item).filter(item => item.completedPlays < item.plannedPlays));
-    const payload = { ...event, deviceId, eventId: crypto.randomUUID() };
-    const queueKey = 'spaceq_campaign_event_queue_v1';
-    try {
-      const queue = JSON.parse(localStorage.getItem(queueKey) || '[]');
-      queue.push(payload);
-      localStorage.setItem(queueKey, JSON.stringify(queue.slice(-500)));
-    } catch (error) {
-      console.warn('Could not persist campaign event for retry:', error);
-    }
-    const flushQueue = async () => {
-      const token = localStorage.getItem(DEVICE_TOKEN_KEY);
-      if (!token) return;
-      let queue: any[] = [];
-      try { queue = JSON.parse(localStorage.getItem(queueKey) || '[]'); } catch { queue = []; }
-      while (queue.length) {
-        const response = await fetch('/api/campaigns/playback-event', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-          body: JSON.stringify(queue[0]),
-        });
-        if (response.status === 201 || response.status === 409) {
-          queue.shift();
-          localStorage.setItem(queueKey, JSON.stringify(queue));
-          continue;
-        }
-        break;
-      }
-    };
-    void flushQueue().catch(error => console.warn('Campaign event sync deferred:', error));
-  };
-
   // 5. Heartbeat + playback telemetry. The kiosk is unauthenticated, so
   // Firestore rules intentionally allow only the specific fields touched
   // below (see firestore.rules — the heartbeat rule's allowed-field list).
@@ -529,8 +459,6 @@ export const KioskDisplay: React.FC = () => {
           darkMode={true}
           kioskMode
           onPlaybackStart={handlePlaybackStart}
-          campaigns={campaigns}
-          onCampaignComplete={handleCampaignComplete}
         />
 
         {/* Remote sync is intentionally non-visual: never interrupt playback. */}
