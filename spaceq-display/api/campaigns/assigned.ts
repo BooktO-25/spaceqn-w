@@ -51,8 +51,8 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     const scheduleRows = queryRows.filter(row => row.document?.fields);
     const campaigns: Array<{ campaignId: string; name: string; creativeUrl: string; durationSeconds: number; plannedPlays: number; completedPlays: number }> = [];
 
-    for (const entry of ids.slice(0, 100)) {
-      const campaignId = entry.stringValue;
+    for (const row of scheduleRows.slice(0, 100)) {
+      const campaignId = str(row.document?.fields, 'campaignId');
       if (!campaignId || !/^[A-Za-z0-9_-]{1,128}$/.test(campaignId)) continue;
       const scheduleId = `${campaignId}_${deviceId}`;
       const [scheduleResponse, campaignResponse, dailyResponse] = await Promise.all([
