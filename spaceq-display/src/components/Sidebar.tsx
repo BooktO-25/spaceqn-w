@@ -15,7 +15,6 @@ import {
   BellOff,
   Rocket,
   MessageSquareText,
-  Megaphone,
 } from 'lucide-react';
 import { roleLabel } from '../lib/permissions';
 
@@ -65,9 +64,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ? [{ id: 'announcement', label: 'Announcement', icon: Rocket }]
       : []),
     { id: 'team', label: 'Team', icon: Users },
-    ...(userProfile?.role === 'BUSINESS_OWNER' || userProfile?.role === 'SUPER_ADMIN' || userProfile?.role === 'REGIONAL_ADMIN' || userProfile?.role === 'MANAGER'
-      ? [{ id: 'campaigns', label: 'DOOH Campaigns', icon: Megaphone }]
-      : []),
     { id: 'scrolling', label: 'Feature Editor', icon: MessageSquareText },
   ];
 
