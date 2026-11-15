@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Device, Playlist, ContentItem } from '../types';
 import { getLayoutTemplate } from '../data/layoutTemplates';
-import { PlayerPane } from './PlayerPane';
+import { PlayerPane, CampaignAd } from './PlayerPane';
 import { QrDisplayOverlay } from './QrDisplayOverlay';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -33,6 +33,8 @@ interface PlayerViewProps {
    * kiosk to record playback telemetry. Left undefined in the dashboard
    * preview, which shouldn't count as real playback. */
   onPlaybackStart?: (event: { contentId: string; title: string; durationSeconds: number }) => void;
+  campaigns?: CampaignAd[];
+  onCampaignComplete?: (event: { campaignId: string; creativeUrl: string; startedAt: string; completedAt: string; actualDurationSeconds: number }) => void;
 }
 
 export const PlayerView: React.FC<PlayerViewProps> = ({
@@ -396,7 +398,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                         contents={contents}
                         zoneLabel={`Zone ${i + 1}`}
                         onStatusChange={i === 0 ? setPrimaryStatus : undefined}
-                        onPlaybackStart={i === 0 ? onPlaybackStart : undefined}
+                        onPlaybackStart={i === 0 ? onPlaybackStart : undefined}\n                        campaigns={i === 0 ? campaigns : []}\n                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
                       />
                     </div>
                   ))}
