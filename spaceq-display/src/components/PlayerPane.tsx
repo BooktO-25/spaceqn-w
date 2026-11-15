@@ -157,6 +157,15 @@ export const PlayerPane: React.FC<PlayerPaneProps> = ({ playlist, contents, onSt
           actualDurationSeconds: Math.max(0.1, (completedAtMs - startedAtMs) / 1000),
         });
         setActiveCampaign(null);
+        let nextOrder = playbackOrder;
+        let nextCursor = orderCursor + 1;
+        if (nextCursor >= nextOrder.length) {
+          nextOrder = buildPlaybackOrder(playlistItems.length, Boolean(playlist?.shuffle));
+          nextCursor = 0;
+          setPlaybackOrder(nextOrder);
+        }
+        const nextIndex = nextOrder[nextCursor];
+        if (typeof nextIndex === 'number') { setOrderCursor(nextCursor); setCurrentIndex(nextIndex); }
       }, playbackDurationSeconds * 1000);
       return () => clearTimeout(timer);
     }
@@ -190,7 +199,7 @@ export const PlayerPane: React.FC<PlayerPaneProps> = ({ playlist, contents, onSt
     }, currentDurationSeconds * 1000);
 
     return () => clearTimeout(timer);
-  }, [orderCursor, playbackOrder, playlistItems.length, playbackDurationSeconds, playlist?.loop, playlist?.shuffle, activeCampaign, campaigns, playlistPlaysSinceAd, campaignCursor, onCampaignComplete]);
+  }, [orderCursor, playbackOrder, playlistItems.length, playbackDurationSeconds, playlist?.loop, playlist?.shuffle, activeCampaign, campaigns, playlistPlaysSinceAd, campaignCursor]);
 
   useEffect(() => {
     onStatusChange?.({
