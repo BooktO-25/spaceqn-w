@@ -91,6 +91,20 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
 
     const projectId = process.env.FIREBASE_PROJECT_ID || '';
     if (!projectId) throw new Error('FIREBASE_PROJECT_ID is not configured.');
+    const dailyId = `${campaignId}_${deviceId}_${day}`;
+    const dailyResponse = await firestoreRequest(`campaignDailyDelivery/${encodeURIComponent(dailyId)}`);
+    let dailyCompleted = 0;
+    let dailyUpdateTime = '';
+    if (dailyResponse.ok) {
+      const dailyDoc = await dailyResponse.json() as { fields?: Record<string, any>; updateTime?: string };
+      dailyCompleted = num(dailyDoc.fields, 'completedPlays');
+      dailyUpdateTime = dailyDoc.updateTime || '';
+    } else if (dailyResponse.status !== 404) {
+      throw new Error('Could not read the daily delivery counter.');
+    }
+    if (dailyCompleted >= plannedForDate) {
+      return res.status(409).json({ ok: false, error: 'The scheduled play quantity for this screen and date has already been delivered.' });
+    }
     const eventFields = {
       eventId: valueString(eventId),
       campaignId: valueString(campaignId),
@@ -109,17 +123,37 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     const scheduleName = documentName(projectId, 'campaignSchedules', scheduleId);
     const allocationName = documentName(projectId, 'campaignAllocations', scheduleId);
     const eventName = documentName(projectId, 'playbackEvents', eventId);
+    const dailyName = documentName(projectId, 'campaignDailyDelivery', dailyId);
     const incrementWrite = (name: string) => ({
       transform: {
         document: name,
         fieldTransforms: [{ fieldPath: 'completedPlays', increment: valueNumber(1) }],
       },
     });
+    const dailyWrite = dailyUpdateTime
+      ? {
+          transform: {
+            document: dailyName,
+            fieldTransforms: [{ fieldPath: 'completedPlays', increment: valueNumber(1) }],
+          },
+          currentDocument: { updateTime: dailyUpdateTime },
+        }
+      : {
+          update: { name: dailyName, fields: {
+            businessId: valueString(device.businessId),
+            campaignId: valueString(campaignId),
+            screenId: valueString(deviceId),
+            localDate: valueString(day),
+            completedPlays: valueNumber(1),
+          } },
+          currentDocument: { exists: false },
+        };
     const commit = await firestoreCommit([
       { update: { name: eventName, fields: eventFields }, currentDocument: { exists: false } },
       incrementWrite(campaignName),
       incrementWrite(scheduleName),
       incrementWrite(allocationName),
+      dailyWrite,
     ]);
     if (commit.status === 409 || commit.status === 400) {
       return res.status(409).json({ ok: false, duplicate: true, error: 'This playback event was already received or could not be committed.' });
