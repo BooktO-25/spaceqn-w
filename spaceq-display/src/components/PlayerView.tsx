@@ -398,7 +398,9 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                         contents={contents}
                         zoneLabel={`Zone ${i + 1}`}
                         onStatusChange={i === 0 ? setPrimaryStatus : undefined}
-                        onPlaybackStart={i === 0 ? onPlaybackStart : undefined}\n                        campaigns={i === 0 ? campaigns : []}\n                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
+                        onPlaybackStart={i === 0 ? onPlaybackStart : undefined}
+                        campaigns={i === 0 ? campaigns : []}
+                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}\n                        campaigns={i === 0 ? campaigns : []}\n                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
                       />
                     </div>
                   ))}
@@ -415,6 +417,8 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                     zoneLabel={`Zone ${i + 1}`}
                     onStatusChange={i === 0 ? setPrimaryStatus : undefined}
                     onPlaybackStart={i === 0 ? onPlaybackStart : undefined}
+                        campaigns={i === 0 ? campaigns : []}
+                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
                   />
                 </div>
               ))}
@@ -435,6 +439,8 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                     zoneLabel={isSplit ? `Zone ${i + 1}` : undefined}
                     onStatusChange={i === 0 ? setPrimaryStatus : undefined}
                     onPlaybackStart={i === 0 ? onPlaybackStart : undefined}
+                        campaigns={i === 0 ? campaigns : []}
+                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
                   />
                 </div>
               </React.Fragment>
