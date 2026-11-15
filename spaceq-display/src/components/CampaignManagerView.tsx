@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  addDoc, arrayUnion, collection, doc, onSnapshot, query, runTransaction, serverTimestamp, where
+  addDoc, collection, doc, onSnapshot, query, runTransaction, serverTimestamp, where
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Device, Location } from '../types';
@@ -252,14 +252,6 @@ export const CampaignManagerView: React.FC<CampaignManagerViewProps> = ({ busine
           remainingPlays: item.totalGuaranteedPlays, status: 'reserved',
           createdAt: serverTimestamp()
         }));
-
-        selectedScreenIds.forEach(screenId => {
-          transaction.set(doc(db, 'deviceCampaignIndex', screenId), {
-            businessId,
-            campaignIds: arrayUnion(campaignRef.id),
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-        });
 
         scheduleRefs.forEach(({ item, ref }) => {
           const daily = plan.schedules.filter(schedule => schedule.screenId === item.screenId);
