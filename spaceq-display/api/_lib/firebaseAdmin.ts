@@ -16,11 +16,8 @@ function loadServiceAccount(): ServiceAccount {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   if (!raw) throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not configured.');
   let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.');
-  }
+  try { parsed = JSON.parse(raw); }
+  catch { throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.'); }
   if (typeof parsed.project_id !== 'string' || typeof parsed.client_email !== 'string' || typeof parsed.private_key !== 'string') {
     throw new Error('Firebase service-account JSON is missing required fields.');
   }
@@ -32,29 +29,17 @@ function loadServiceAccount(): ServiceAccount {
 
 async function getAccessToken(account: ServiceAccount): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) return cachedToken.value;
-
   const now = Math.floor(Date.now() / 1000);
-  const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const claims = base64Url(JSON.stringify({
-    iss: account.client_email,
-    scope: 'https://www.googleapis.com/auth/datastore',
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600,
+  const unsigned = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' })) + '.' + base64Url(JSON.stringify({
+    iss: account.client_email, scope: 'https://www.googleapis.com/auth/datastore',
+    aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600,
   }));
-  const unsigned = header + '.' + claims;
   const signer = createSign('RSA-SHA256');
-  signer.update(unsigned);
-  signer.end();
+  signer.update(unsigned); signer.end();
   const assertion = unsigned + '.' + base64Url(signer.sign(account.private_key));
-
   const response = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion,
-    }),
+    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }),
   });
   if (!response.ok) throw new Error('Google OAuth token exchange failed.');
   const token = await response.json() as { access_token?: string; expires_in?: number };
@@ -63,16 +48,24 @@ async function getAccessToken(account: ServiceAccount): Promise<string> {
   return token.access_token;
 }
 
-export async function firestoreRequest(path: string, init: RequestInit = {}): Promise<Response> {
+async function authenticatedFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const account = loadServiceAccount();
   const token = await getAccessToken(account);
+  return fetch(url, { ...init, headers: { authorization: `Bearer ${token}`, ...(init.headers || {}) } });
+}
+
+export async function firestoreRequest(path: string, init: RequestInit = {}): Promise<Response> {
+  const account = loadServiceAccount();
   const safePath = path.replace(/^\/+/, '');
-  return fetch(`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(account.project_id)}/databases/(default)/documents/${safePath}`, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${token}`,
-      ...(init.headers || {}),
-    },
+  return authenticatedFetch(`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(account.project_id)}/databases/(default)/documents/${safePath}`, init);
+}
+
+export async function firestoreCommit(writes: unknown[]): Promise<Response> {
+  const account = loadServiceAccount();
+  return authenticatedFetch(`https://firestore.googleapis.com/v1/projects/${encodeURIComponent(account.project_id)}/databases/(default)/documents:commit`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ writes }),
   });
 }
 
