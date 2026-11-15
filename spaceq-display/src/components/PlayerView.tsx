@@ -421,8 +421,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                     onPlaybackStart={i === 0 ? onPlaybackStart : undefined}
                     campaigns={i === 0 ? campaigns : []}
                     onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
-                        campaigns={i === 0 ? campaigns : []}
-                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
                   />
                 </div>
               ))}
@@ -445,8 +443,6 @@ export const PlayerView: React.FC<PlayerViewProps> = ({
                     onPlaybackStart={i === 0 ? onPlaybackStart : undefined}
                     campaigns={i === 0 ? campaigns : []}
                     onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
-                        campaigns={i === 0 ? campaigns : []}
-                        onCampaignComplete={i === 0 ? onCampaignComplete : undefined}
                   />
                 </div>
               </React.Fragment>
