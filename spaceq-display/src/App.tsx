@@ -194,15 +194,27 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
     orientation: 'LANDSCAPE' | 'PORTRAIT',
     assignedPlaylistIds?: string[]
   ) => {
-    const ref = doc(db, 'devices', code);
-    const snap = await getDoc(ref);
-
-    if (!snap.exists()) {
-      throw new Error("No display found with that code. Make sure the TV is powered on, showing the code, and connected to the internet.");
-    }
-    const existing = snap.data() as Device;
-    if (existing.status !== 'PAIRING' || existing.businessId) {
-      throw new Error('That code has already been used to connect a different display. Ask the TV to show a fresh code (unplug/replug it, or clear its browser data), then try again.');
+    if (!user || !selectedBusiness) throw new Error('Sign in and select a business before pairing a display.');
+    const idToken = await user.getIdToken();
+    const claimResponse = await fetch('/api/devices/claim', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({
+        code,
+        name,
+        locationId,
+        playlistId,
+        assignedPlaylistIds: assignedPlaylistIds && assignedPlaylistIds.length ? assignedPlaylistIds : [playlistId],
+        orientation,
+        businessId: selectedBusiness.id,
+      }),
+    });
+    const claimResult = await claimResponse.json().catch(() => ({}));
+    if (!claimResponse.ok) {
+      throw new Error(claimResult.error || 'Could not pair this display. Please retry.');
     }
 
     const updated: Partial<Device> = {
@@ -223,9 +235,7 @@ function MainApplication({ isAdminEntrance = false }: { isAdminEntrance?: boolea
       lastSeenAt: new Date().toISOString(),
       tags: ['New Display', orientation],
     };
-    await updateDoc(ref, updated as any);
-
-    const claimedDevice: Device = { ...existing, ...updated, id: code, pairingCode: code } as Device;
+    const claimedDevice: Device = { id: code, pairingCode: code, ...updated } as Device;
     setDevices(prev => [claimedDevice, ...prev.filter(d => d.id !== code)]);
 
     await logActivity({
