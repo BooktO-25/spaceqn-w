@@ -115,6 +115,8 @@ export function buildCampaignPlan(input: CampaignPlanInput): CampaignPlan {
     return { screenId, networkPlays, screenSpecificPlays, totalGuaranteedPlays: networkPlays + screenSpecificPlays };
   });
 
+  if (allocations.every(item => item.totalGuaranteedPlays === 0)) throw new Error('A campaign must guarantee at least one play.');
+
   const dates = getDateKeys(input.startDate, input.endDate);
   const schedules: DailyScreenSchedule[] = [];
   for (const allocation of allocations) {
